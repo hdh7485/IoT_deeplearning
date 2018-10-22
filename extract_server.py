@@ -191,7 +191,7 @@ def make_x(row, x_data):
         # x_data = np.reshape(x_data, (-1, X_width))
         x_data = np.reshape(x_data, (-1,1, X_width))
         x_data = np.delete(x_data, 0,0)
-    print numpy.shape(x_data)
+    print(numpy.shape(x_data))
     return x_data
 
 def extract_data_oned(states=None, labels=None, groups=None, personIDs=None, numRows=None, numData=None, mode=None, NUM_CHANNELS=None,
@@ -213,7 +213,7 @@ def extract_data_oned(states=None, labels=None, groups=None, personIDs=None, num
         # data[:, :, 0, :] = results[res_idx][row_idx:row_idx + numRows, 0:NUM_CHANNELS]
         data[ :,:, :, :] = x_data[1][:,:]
 
-    print numpy.shape(data)
+    print(numpy.shape(data))
 
     return data, did
 
