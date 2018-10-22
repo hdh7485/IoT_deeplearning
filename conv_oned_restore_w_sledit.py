@@ -1,7 +1,7 @@
 import gzip
 import os
 import sys
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 import tensorflow.python.platform
 from tensorflow.python.platform import gfile
@@ -130,7 +130,7 @@ def fake_data(num_images):
         shape=(num_images, NUM_ROWS, DATA_SIZE, NUM_CHANNELS),
         dtype=numpy.float32)
     labels = numpy.zeros(shape=(num_images, NUM_LABELS), dtype=numpy.float32)
-    for image in xrange(num_images):
+    for image in range(num_images):
         label = image % 2
         data[image, :, :, 0] = label - 0.5
         labels[image, label] = 1.0
@@ -188,7 +188,7 @@ def xavier_init2(n_inputs, n_outputs2,n_outputs3, uniform=False):
 
 def main(argv=None):  # pylint: disable=unused-argument
     if FLAGS.self_test:
-        print 'Running self-test.'
+        print('Running self-test.')
         train_data, train_labels = fake_data(256)
         validation_data, validation_labels = fake_data(16)
         test_data, test_labels = fake_data(256)

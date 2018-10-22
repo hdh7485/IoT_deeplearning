@@ -10,7 +10,7 @@ Run with --self_test on the command line to exectute a short self-test.
 import gzip
 import os
 import sys
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 import tensorflow.python.platform
 from tensorflow.python.platform import gfile
@@ -162,7 +162,7 @@ def fake_data(num_images):
         shape=(num_images, NUM_ROWS, DATA_SIZE, NUM_CHANNELS),
         dtype=numpy.float32)
     labels = numpy.zeros(shape=(num_images, NUM_LABELS), dtype=numpy.float32)
-    for image in xrange(num_images):
+    for image in range(num_images):
         label = image % 2
         data[image, :, :, 0] = label - 0.5
         labels[image, label] = 1.0
@@ -172,10 +172,10 @@ def fake_data(num_images):
 
 def error_rate(predictions, labels):
     """Return the error rate based on dense predictions and 1-hot labels."""
-    print 'predictions'
-    print numpy.argmax(predictions,1)
-    print 'labels'
-    print numpy.argmax(labels,1)
+    print('predictions')
+    print(numpy.argmax(predictions,1))
+    print('labels')
+    print(numpy.argmax(labels,1))
     return 100.0 - (
         100.0 *
         numpy.sum(numpy.argmax(predictions, 1) == numpy.argmax(labels, 1)) /
@@ -197,10 +197,10 @@ def correct_detection(predictions, labels):
 
 def error_draw_matrix_rate(predictions, labels, matrix):
     """Return the error rate based on dense predictions and 1-hot labels."""
-    print 'predictions'
-    print numpy.shape(predictions)
-    print 'labels'
-    print numpy.shape(labels)
+    print('predictions')
+    print(numpy.shape(predictions))
+    print('labels')
+    print(numpy.shape(labels))
     p=numpy.argmax(predictions, 1)
     l=numpy.argmax(labels, 1)
     i=len(predictions)-1#########################################################################################################################################################
@@ -255,7 +255,7 @@ def xavier_init2(n_inputs, n_outputs2,n_outputs3, uniform=False):
 
 def main(argv=None):  # pylint: disable=unused-argument
     if FLAGS.self_test:
-        print 'Running self-test.'
+        print('Running self-test.')
         train_data, train_labels = fake_data(256)
         validation_data, validation_labels = fake_data(16)
         test_data, test_labels = fake_data(256)
@@ -267,16 +267,16 @@ def main(argv=None):  # pylint: disable=unused-argument
         DOCTORS = FLAGS.doctors.split(',')
         MOVES = FLAGS.moves.split(',')
         LABELS = FLAGS.labels.split(',')
-        print STATES
-        print MOVES
-        print DATES
-        print LABELS
+        print(STATES)
+        print(MOVES)
+        print(DATES)
+        print(LABELS)
         NUM_LABELS = len(set(LABELS))
-        print NUM_LABELS
+        print(NUM_LABELS)
 
         train_data, train_labels = extractData.extract_data_oned(numRows = NUM_ROWS, numData = TRAIN_SIZE, moves=MOVES, doctors=DOCTORS, dates=DATES,states = STATES, labels = LABELS, mode = 'train', DATA_SIZE = DATA_SIZE,NUM_CHANNELS=NUM_CHANNELS,ONED=True)
         train_data = train_data[:,:,0,:]
-        print "train_data", numpy.shape(train_data)
+        print("train_data", numpy.shape(train_data))
         #print " change train_data", numpy.shape(train_data[:,:,0,:])
         # print 'train_data[0]'
         # print train_data[0]
@@ -289,7 +289,7 @@ def main(argv=None):  # pylint: disable=unused-argument
 
         test_data, test_labels = extractData.extract_data_oned(numRows=NUM_ROWS, numData=TEST_SIZE, states=STATES, moves=MOVES, doctors=DOCTORS, dates=DATES,labels=LABELS, mode='test',DATA_SIZE = DATA_SIZE,NUM_CHANNELS=NUM_CHANNELS, ONED=True)
         test_data = test_data[:, :, 0, :]
-        print "test_data", numpy.shape(test_data)
+        print("test_data", numpy.shape(test_data))
         test_data_list.append(test_data)
         test_labels_list.append(test_labels)
 
@@ -297,7 +297,7 @@ def main(argv=None):  # pylint: disable=unused-argument
 
         validation_data, validation_labels = extractData.extract_data_oned(numRows = NUM_ROWS, numData = VALIDATION_SIZE, states = STATES, moves=MOVES, doctors=DOCTORS, dates=DATES,labels = LABELS, mode = 'validate',DATA_SIZE = DATA_SIZE,NUM_CHANNELS=NUM_CHANNELS, ONED=True)
         validation_data = validation_data[:, :, 0, :]
-        print "validation_data", numpy.shape(validation_data)
+        print("validation_data", numpy.shape(validation_data))
         # print 'test_data1'
         # print test_data
         #
@@ -326,16 +326,16 @@ def main(argv=None):  # pylint: disable=unused-argument
     train_data_node = tf.placeholder(
         tf.float32,
         shape=(BATCH_SIZE, NUM_ROWS,  NUM_CHANNELS))
-    print "train_data_node", train_data_node
-    print "train_data_node", train_data_node[0]
+    print("train_data_node", train_data_node)
+    print("train_data_node", train_data_node[0])
     train_labels_node = tf.placeholder(tf.float32,
                                        shape=(BATCH_SIZE, NUM_LABELS))
 
     # For the validation and test data, we'll just hold the entire dataset in
     # one constant node.
-    print "validation_data", numpy.shape(validation_data)
+    print("validation_data", numpy.shape(validation_data))
     validation_data_node = tf.constant(validation_data)
-    print "validation_data_node", validation_data_node
+    print("validation_data_node", validation_data_node)
     # The variables below hold all the trainable weights. They are passed an
     # initial value which will be assigned when when we call:
     # {tf.initialize_all_variables().run()}
@@ -370,8 +370,8 @@ def main(argv=None):  # pylint: disable=unused-argument
     else:
         WH = (NUM_ROWS) / (POOL_1 * POOL_2) * (DATA_SIZE) / (1 * 1) * CONV_2_D
 
-    print 'WH'
-    print WH
+    print('WH')
+    print(WH)
     # fc1_weights = tf.Variable(  # fully connected, depth 512.
     #     tf.truncated_normal([WH, FULL_D],
     #                         stddev=0.1,
@@ -412,13 +412,13 @@ def main(argv=None):  # pylint: disable=unused-argument
         #                     padding=CONV_1_PADDING)
         conv = tf.nn.conv1d(data,conv1_weights, stride=1,padding="SAME")################################################################################   must change
 
-        print 'data', data
-        print 'conv1_weights', conv1_weights
-        print 'conv', conv
+        print('data', data)
+        print('conv1_weights', conv1_weights)
+        print('conv', conv)
         # Bias and rectified linear non-linearity.
         relu = tf.nn.relu(tf.nn.bias_add(conv, conv1_biases))
         # relu = tf.nn.dropout(relu,d_rate)
-        print relu
+        print(relu)
         #relu = tf.nn.dropout(relu, 0.5)
         # Max pooling. The kernel size spec {ksize} also follows the layout of
         # the data. Here we have a pooling window of 2, and a stride of 2.
@@ -429,10 +429,10 @@ def main(argv=None):  # pylint: disable=unused-argument
             #                   strides=[1, POOL_1],
             #                   padding='SAME')
             pool = tf.layers.max_pooling1d(relu,POOL_1,strides=POOL_1, padding='VALID')
-            print pool
+            print(pool)
         else:
             pool = relu
-            print pool
+            print(pool)
 
         # conv = tf.nn.conv2d(pool,
         #                     conv2_weights,
@@ -448,17 +448,17 @@ def main(argv=None):  # pylint: disable=unused-argument
             #                   strides=[1, POOL_2],
             #                   padding='SAME')
             pool = tf.layers.max_pooling1d(relu, POOL_2, strides=POOL_2,padding='VALID')
-            print pool
+            print(pool)
         else:
             pool = relu
-            print pool
+            print(pool)
 
 
         # conv = tf.nn.conv2d(pool,
         #                    conv3_weights,
         #                    strides=[1, 1, 1, 1],
         #                    padding='SAME')
-        print 'data', numpy.shape(data)
+        print('data', numpy.shape(data))
         conv = tf.nn.conv1d(pool, conv3_weights, stride=1, padding="SAME")
         relu = tf.nn.relu(tf.nn.bias_add(conv, conv3_biases))
         # relu = tf.nn.dropout(relu, d_rate)
@@ -470,35 +470,35 @@ def main(argv=None):  # pylint: disable=unused-argument
             pool = tf.layers.max_pooling1d(relu, POOL_3, strides=POOL_3,padding='VALID')
         else:
             pool = relu
-            print pool
+            print(pool)
 
 
         # Reshape the feature map cuboid into a 2D matrix to feed it to the
         # fully connected layers.
         pool_shape = pool.get_shape().as_list()
-        print pool_shape
+        print(pool_shape)
         reshape = tf.reshape(
             pool,
             [pool_shape[0], pool_shape[1] * pool_shape[2] ])
 
-        print reshape
-        print fc1_weights
-        print fc1_biases
+        print(reshape)
+        print(fc1_weights)
+        print(fc1_biases)
         # Fully connected layer. Note that the '+' operation automatically
         # broadcasts the biases.
         hidden = tf.nn.relu(tf.matmul(reshape, fc1_weights) + fc1_biases)
         #hidden = tf.nn.dropout(hidden, 0.5, seed=SEED)
-        print "hidden", hidden
+        print("hidden", hidden)
         # print fc11
         # hidden = tf.nn.relu(tf.matmul(hidden, fc11_weights) + fc11_biases)
 
 
         # Add a 50% dropout during training only. Dropout also scales
         # activations such that no rescaling is needed at evaluation time.
-        print 'before train work'
+        print('before train work')
         if train:
             hidden = tf.nn.dropout(hidden, 0.5, seed=SEED)
-            print 'train work'
+            print('train work')
         return tf.matmul(hidden, fc2_weights) + fc2_biases
 
     # Training computation: logits + cross-entropy loss.
@@ -543,13 +543,13 @@ def main(argv=None):  # pylint: disable=unused-argument
     with tf.Session() as s:
         # Run all the initializers to prepare the trainable parameters.
         tf.initialize_all_variables().run()
-        print 'Initialized!'
+        print('Initialized!')
 
         matrix_test = [[0 for col in range(len(STATES))] for row in range(len(STATES))]
         ##summary_writer = tf.train.SummaryWriter(FLAGS.train_dir,
         ##                                    graph_def=s.graph_def)
         # Loop through training steps.
-        for step in xrange(int(num_epochs * train_size / BATCH_SIZE)):
+        for step in range(int(num_epochs * train_size / BATCH_SIZE)):
             # Compute the offset of the current minibatch in the data.
             # Note that we could use better randomization across epochs.
             offset = (step * BATCH_SIZE) % (train_size - BATCH_SIZE)
@@ -566,20 +566,20 @@ def main(argv=None):  # pylint: disable=unused-argument
                 feed_dict=feed_dict)
             # predictions = s.run(train_prediction,
             #     feed_dict=feed_dict)
-            print 'optimizer'
-            print _
-            print 'loss'
-            print l
-            print 'learning_rate'
-            print lr
+            print('optimizer')
+            print(_)
+            print('loss')
+            print(l)
+            print('learning_rate')
+            print(lr)
 
             if step % 100 == 0:
-                print 'Epoch %.2f' % (float(step) * BATCH_SIZE / train_size)
-                print 'Minibatch loss: %.3f, learning rate: %.6f' % (l, lr)
-                print 'Minibatch error: %.1f%%' % error_rate(predictions,
-                                                             batch_labels)
-                print 'Validation error: %.1f%%' % error_rate(
-                    validation_prediction.eval(), validation_labels)
+                print('Epoch %.2f' % (float(step) * BATCH_SIZE / train_size))
+                print('Minibatch loss: %.3f, learning rate: %.6f' % (l, lr))
+                print('Minibatch error: %.1f%%' % error_rate(predictions,
+                                                             batch_labels))
+                print('Validation error: %.1f%%' % error_rate(
+                    validation_prediction.eval(), validation_labels))
                 #print 'logits: ', train_prediction.eval()
                 sys.stdout.flush()
                 checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
@@ -611,14 +611,14 @@ def main(argv=None):  # pylint: disable=unused-argument
                 of.write('%s\n,' % matrix_test[i])
 
             of.flush()
-            print 'Test false alarm: %.1f%%' % false_alarm(
-                test_prediction.eval(), test_labels)
-            print 'Test correct detection: %.1f%%' % correct_detection(
-                test_prediction.eval(), test_labels)
-            print 'Test error: %.1f%%' % test_error
+            print('Test false alarm: %.1f%%' % false_alarm(
+                test_prediction.eval(), test_labels))
+            print('Test correct detection: %.1f%%' % correct_detection(
+                test_prediction.eval(), test_labels))
+            print('Test error: %.1f%%' % test_error)
             # saver.save(s, "w_0328.ckpt")
             if FLAGS.self_test:
-                print 'test_error', test_error
+                print('test_error', test_error)
                 assert test_error == 0.0, 'expected 0.0 test_error, got %.2f' % (
                     test_error,)
 

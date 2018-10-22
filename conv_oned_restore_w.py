@@ -1,7 +1,7 @@
 import gzip
 import os
 import sys
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 import tensorflow.python.platform
 from tensorflow.python.platform import gfile
@@ -133,7 +133,7 @@ def fake_data(num_images):
         shape=(num_images, NUM_ROWS, DATA_SIZE, NUM_CHANNELS),
         dtype=numpy.float32)
     labels = numpy.zeros(shape=(num_images, NUM_LABELS), dtype=numpy.float32)
-    for image in xrange(num_images):
+    for image in range(num_images):
         label = image % 2
         data[image, :, :, 0] = label - 0.5
         labels[image, label] = 1.0
@@ -191,7 +191,7 @@ def xavier_init2(n_inputs, n_outputs2,n_outputs3, uniform=False):
 
 def main(argv=None):  # pylint: disable=unused-argument
     if FLAGS.self_test:
-        print 'Running self-test.'
+        print('Running self-test.')
         train_data, train_labels = fake_data(256)
         validation_data, validation_labels = fake_data(16)
         test_data, test_labels = fake_data(256)
@@ -211,7 +211,7 @@ def main(argv=None):  # pylint: disable=unused-argument
 
         test_data, test_labels= extractData.extract_data_oned(numRows=NUM_ROWS, numData=TEST_SIZE, states=STATES, labels=LABELS, mode='test',DATA_SIZE = DATA_SIZE,NUM_CHANNELS=NUM_CHANNELS, ONED=True)
         # test_data = test_data[:, :, 0, :]
-        print "test_data", numpy.shape(test_data)
+        print("test_data", numpy.shape(test_data))
         test_data_list.append(test_data)
 
 
@@ -242,12 +242,12 @@ def main(argv=None):  # pylint: disable=unused-argument
     def model(data, train):
         conv = tf.nn.conv1d(data, conv1_weights, stride=1,
                             padding="SAME")
-        print numpy.shape(conv)
+        print(numpy.shape(conv))
         relu = tf.nn.relu(tf.nn.bias_add(conv, conv1_biases))
-        print numpy.shape(relu)
+        print(numpy.shape(relu))
         if True:
             pool = tf.layers.max_pooling1d(relu, POOL_1, strides=POOL_1, padding='VALID')
-            print numpy.shape(pool)
+            print(numpy.shape(pool))
         else:
             pool = relu
 
@@ -290,7 +290,7 @@ def main(argv=None):  # pylint: disable=unused-argument
         of.write('Test correct detection: %.1f%%\n' % correct_detection(
             test_prediction.eval(), test_labels))
         of.flush()
-        print test_prediction
+        print(test_prediction)
         of.close()
 
 if __name__ == '__main__':

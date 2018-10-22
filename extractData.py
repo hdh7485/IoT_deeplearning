@@ -87,7 +87,7 @@ def get_files(states=None, moves=None, dates = None, doctors=None):
                                 filenames.append(dirName1 + '/' + fn)
                                 filelabels.append(Labels['m'+move.split('_')[0]])
 
-    print "found %d files" % len(filenames)
+    print("found %d files" % len(filenames))
     return filenames, filelabels
 
 
@@ -97,13 +97,13 @@ def fileReader(fn):
     reader = csv.reader(open(fn, "rb"), delimiter=',')
     x = list(reader)
     result = numpy.array(x).astype('float')
-    print '%s has %d rows.' % (fn, result.shape[0])
+    print('%s has %d rows.' % (fn, result.shape[0]))
     return result
 
 def extract_data(states=None, labels=None, moves=None, doctors=None, dates=None, numRows=None, numData=None, mode=None, ONED=False, DATA_SIZE=None):
 
     NUM_LABELS = len(set(labels))
-    print NUM_LABELS
+    print(NUM_LABELS)
     for s, l in zip(states, labels):
         Labels[s] = l
 
@@ -160,7 +160,7 @@ def extract_data_oned(states=None, labels=None, moves=None, doctors=None, dates=
                      ONED=True, DATA_SIZE=None):
 
     NUM_LABELS = len(set(labels))
-    print NUM_LABELS
+    print(NUM_LABELS)
     for s, l in zip(states, labels):
         Labels[s] = l
 

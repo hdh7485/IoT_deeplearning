@@ -1,7 +1,7 @@
 import gzip
 import os
 import sys
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 import tensorflow.python.platform
 from tensorflow.python.platform import gfile
@@ -253,16 +253,16 @@ def save(table, tr_x_data, tr_y_data, f, dirPath):
     table_name = str(table)
     if f==0:
         np.savetxt(dirPath+table_name+'_'+makeDate, tr_x_data,delimiter=',')
-        print table_name
-        print len(tr_x_data)
+        print(table_name)
+        print(len(tr_x_data))
         tr_x_data=[]
         tr_y_data=[]
     else:
         table = table.split('_')
         table_name = 'm'+ table[0]
         np.savetxt(dirPath+table_name+'_'+makeDate, tr_x_data, delimiter=',')
-        print table_name
-        print len(tr_x_data)
+        print(table_name)
+        print(len(tr_x_data))
         tr_x_data = []
         tr_y_data = []
 
@@ -290,8 +290,8 @@ def makedir_merge(filenames,f):
                 os.system('mkdir ' + CPName3)  # ../C1/doctorid/date
             os.system('cp ' + name + " " + CPName3 + "/")
             os.system('cat ' + CPName3 + '/*.csv > ' + CPName3 + '/' + a[-2] + ".csv")
-            print 'cat ' + CPName3 + '/*.csv > ' + CPName3 + '/' + a[-2] + ".csv"
-            print "found files %s" % (a[-2])
+            print('cat ' + CPName3 + '/*.csv > ' + CPName3 + '/' + a[-2] + ".csv")
+            print("found files %s" % (a[-2]))
 
     else:#move_mode
         for name in filenames:
@@ -312,8 +312,8 @@ def makedir_merge(filenames,f):
                 os.system('mkdir ' + CPName3)  # ../C1/doctorid/date
             os.system('cp ' + name + " " + CPName3 + "/")
             os.system('cat ' + CPName3 + '/*.csv > ' + CPName3 + '/' + a[-2] + ".csv")
-            print 'cat ' + CPName3 + '/*.csv > ' + CPName3 + '/' + a[-2] + ".csv"
-            print "found files %s" % (a[-2])
+            print('cat ' + CPName3 + '/*.csv > ' + CPName3 + '/' + a[-2] + ".csv")
+            print("found files %s" % (a[-2]))
 
 
 def make_dir(dirName, Bid, Did, Date):
@@ -393,14 +393,14 @@ def mergefiles():
                 dirName2 = os.path.join(dirName1, Doctor[i])
             if os.path.isdir(dirName1):
                 os.system('cat '+dirName1+'/'+States[j]+'/*.csv > '  +dirName1+'/'+States[j]+'/'+ States[j] + ".csv")
-                print 'cat '+dirName1+'/'+States[j]+'/*.csv > ' +dirName1+'/'+States[j]+'/'+ States[j] + ".csv"
-                print "found files %s" % (States[j])
+                print('cat '+dirName1+'/'+States[j]+'/*.csv > ' +dirName1+'/'+States[j]+'/'+ States[j] + ".csv")
+                print("found files %s" % (States[j]))
         for k in range(len(MOVE)):
             dirName1 = os.path.join(dirName, MOVE[k])  # merge_data_new/C1
             if os.path.isdir(dirName1):
                 os.system('cat ' + dirName1 + '/' + MOVE[k] + '/*.csv > ' + dirName1 + '/' + MOVE[k] + '/' + MOVE[k] + ".csv")
-                print 'cat ' + dirName1 + '/' + MOVE[k] + '/*.csv > ' + dirName1 + '/' + MOVE[k] + '/' + MOVE[k] + ".csv"
-                print "found files %s" % (MOVE[k])
+                print('cat ' + dirName1 + '/' + MOVE[k] + '/*.csv > ' + dirName1 + '/' + MOVE[k] + '/' + MOVE[k] + ".csv")
+                print("found files %s" % (MOVE[k]))
     return filenames, filelabels
 
 
