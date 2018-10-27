@@ -1,12 +1,3 @@
-"""Simple, end-to-end, LeNet-5-like convolutional MNIST model example.
-
-This should achieve a test error of 0.8%. Please keep this model as simple and
-linear as possible, it is meant as a tutorial for simple convolutional models.
-Run with --self_test on the command line to exectute a short self-test.
-"""
-
-# edited by SJLIM
-# edited by SJLIM
 import gzip
 import os
 import sys
