@@ -15,6 +15,7 @@ class IOTDataset:
 
         self.read_feature()
         self.read_target()
+        self.load_cnn_format()
 
     def read_feature(self):
         f = open('./data/beacon_data_170201to170327.csv', 'r')
@@ -67,7 +68,7 @@ class IOTDataset:
                 self.cnn_feature_data_list.append(cnn_bundle)
 
         self.cnn_feature_data = np.array(self.cnn_feature_data_list)
-        return self.cnn_feature_data
+        #return self.cnn_feature_data
 
     def str_to_datetime(self, time_string):
         return datetime.strptime(time_string, '%Y-%m-%d %H:%M:%S')
@@ -78,7 +79,7 @@ def main():
     #print(data.target)
     #print(data.target)
     #print(data.feature_data[:2, 3])
-    print(data.load_cnn_format())
+    print(data.cnn_feature_data)
 
 if __name__ == "__main__":
     main()
