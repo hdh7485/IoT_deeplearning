@@ -61,11 +61,11 @@ class IOTDataset:
             self.str_to_datetime(self.target_time_list[target_index]):
                 cnn_bundle.append(line)
             else:
+                self.cnn_feature_data_list.append(cnn_bundle)
                 cnn_bundle = []
                 target_index += 1
                 if target_index > len(self.target_time_list) - 1:
                     break
-                self.cnn_feature_data_list.append(cnn_bundle)
 
         self.cnn_feature_data = np.array(self.cnn_feature_data_list)
         #return self.cnn_feature_data
@@ -75,10 +75,6 @@ class IOTDataset:
 
 def main():
     data = IOTDataset()
-    #print(data.target_names)
-    #print(data.target)
-    #print(data.target)
-    #print(data.feature_data[:2, 3])
     print(data.cnn_feature_data)
 
 if __name__ == "__main__":
