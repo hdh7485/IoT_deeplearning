@@ -11,314 +11,120 @@ import extractData
 
 import time
 
-# saver = tf.train.Saver()
-# data set parameter
+batch_xs = [[-10, 0, 0, 0, 0, 0], 
+    [-10, 0, 0, 0, 0, 0], 
+    [-9, -8, 0, 0, 0, 0], 
+    [-10, 0, 0, 0, 0, 0], 
+    [-8, -7, 0, 0, 0, 0]]
 
-def make_cnn_data:
-    pass
-     
-def main(argv=None):  # pylint: disable=unused-argument
-    if FLAGS.self_test:
-        print('Running self-test.')
-        train_data, train_labels = fake_data(256)
-        validation_data, validation_labels = fake_data(16)
-        test_data, test_labels = fake_data(256)
-        num_epochs = 1
-    else:
+batch_ys = [1, 0, 0, 0, 0, 0]
 
-        validation_data, validation_labels = extractData.extract_data_oned(numRows = NUM_ROWS, numData = VALIDATION_SIZE, states = STATES, moves=MOVES, doctors=DOCTORS, dates=DATES,labels = LABELS, mode = 'validate',DATA_SIZE = DATA_SIZE,NUM_CHANNELS=NUM_CHANNELS, ONED=True)
-        validation_data = validation_data[:, :, 0, :]
-        print("validation_data", numpy.shape(validation_data))
+tf.set_random_seed(777)  # reproducibility
 
-        #train_data, train_labels = extractData.extract_data(numRows = NUM_ROWS, numData = 10000, mode = 'train')
-        #test_data, test_labels = extractData.extract_data(numRows = NUM_ROWS, numData = 2000, mode = 'test')
-        #validation_data, validation_labels = extractData.extract_data(numRows = NUM_ROWS, numData = 2000, mode = 'validate')
-        # Generate a validation set.
-        num_epochs = NUM_EPOCHS
+mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
+
+learning_rate = 0.001
+training_epochs = 15
+batch_size = 100
 
 
-    if gfile.Exists(FLAGS.train_dir):
-        gfile.DeleteRecursively(FLAGS.train_dir)
-    gfile.MakeDirs(FLAGS.train_dir)
+class Model:
 
-    train_size = train_labels.shape[0]
+    def __init__(self, sess, name):
+        self.sess = sess
+        self.name = name
+        self._build_net()
 
-    train_data_node = tf.placeholder(
-        tf.float32,
-        shape=(BATCH_SIZE, NUM_ROWS,  NUM_CHANNELS))
-    print("train_data_node", train_data_node)
-    print("train_data_node", train_data_node[0])
-    train_labels_node = tf.placeholder(tf.float32,
-                                       shape=(BATCH_SIZE, NUM_LABELS))
+    def _build_net(self):
+        with tf.variable_scope(self.name):
+            # dropout (keep_prob) rate  0.7~0.5 on training, but should be 1
+            # for testing
+            self.training = tf.placeholder(tf.bool)
 
-    conv1_weights = tf.get_variable("C1", shape=[ CONV_1_H, NUM_CHANNELS, CONV_1_D], initializer=xavier_init2(CONV_1_H,  NUM_CHANNELS, CONV_1_D))
-    conv1_biases = tf.Variable(tf.zeros([CONV_1_D]))
+            # input place holders
+            self.X = tf.placeholder(tf.float32, [None, 6, 6])
 
+            # img 28x28x1 (black/white), Input Layer
+            self.Y = tf.placeholder(tf.float32, [None, 10])
 
-    # conv2_weights = tf.Variable(
-    #     tf.truncated_normal([CONV_2_W, CONV_2_H, CONV_1_D, CONV_2_D],
-    #                         stddev=0.1,
-    #                         seed=SEED))
-    conv2_weights = tf.get_variable("C2", shape=[ CONV_2_H, CONV_1_D, CONV_2_D],
-                                    initializer=xavier_init2(CONV_2_H,  CONV_1_D, CONV_2_D))
-    conv2_biases = tf.Variable(tf.constant(0.1, shape=[CONV_2_D]))
+            # Convolutional Layer #1
+            conv1 = tf.layers.conv2d(inputs=self.X, filters=3, kernel_size=[3, 3],
+                                     padding="SAME", activation=tf.nn.relu)
+            # Pooling Layer #1
+            pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2],
+                                            padding="SAME", strides=2)
+            dropout1 = tf.layers.dropout(inputs=pool1,
+                                         rate=0.3, training=self.training)
 
+            # Convolutional Layer #2 and Pooling Layer #2
+            conv2 = tf.layers.conv2d(inputs=dropout1, filters=20, kernel_size=[3, 3],
+                                     padding="SAME", activation=tf.nn.relu)
+            pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2],
+                                            padding="SAME", strides=2)
+            dropout2 = tf.layers.dropout(inputs=pool2,
+                                         rate=0.3, training=self.training)
 
-    # # conv3_weights = tf.Variable(
-    # #    tf.truncated_normal([CONV_3_W, CONV_3_H, CONV_2_D, CONV_3_D],
-    # #                        stddev=0.1,
-    # #                        seed=SEED))
-    conv3_weights = tf.get_variable("C3", shape=[CONV_3_H, CONV_2_D, CONV_3_D],
-                                    initializer=xavier_init2(CONV_3_H,  CONV_2_D, CONV_3_D))
-    conv3_biases = tf.Variable(tf.constant(0.1, shape=[CONV_3_D]))
+            # Convolutional Layer #2 and Pooling Layer #2
+            conv3 = tf.layers.conv2d(inputs=dropout2, filters=30, kernel_size=[3, 3],
+                                     padding="same", activation=tf.nn.relu)
+            pool3 = tf.layers.max_pooling2d(inputs=conv3, pool_size=[2, 2],
+                                            padding="same", strides=2)
+            dropout3 = tf.layers.dropout(inputs=pool3,
+                                         rate=0.3, training=self.training)
 
-    if CONV_1_PADDING == 'VALID':
-        # WH = (NUM_ROWS - CONV_1_W + 2) / (POOL_1 * POOL_2 ) * (DATA_SIZE - CONV_1_H + 1) / (1 * 1) * CONV_2_D ################################################################
-        WH=128*3 ################################################### todo !!!!
-    else:
-        WH = (NUM_ROWS) / (POOL_1 * POOL_2) * (DATA_SIZE) / (1 * 1) * CONV_2_D
+            # Dense Layer with Relu
+            flat = tf.reshape(dropout3, [-1, 128 * 4 * 4])
+            dense4 = tf.layers.dense(inputs=flat,
+                                     units=625, activation=tf.nn.relu)
+            dropout4 = tf.layers.dropout(inputs=dense4,
+                                         rate=0.5, training=self.training)
 
-    print('WH')
-    print(WH)
-    # fc1_weights = tf.Variable(  # fully connected, depth 512.
-    #     tf.truncated_normal([WH, FULL_D],
-    #                         stddev=0.1,
-    #                         seed=SEED))
-    fc1_weights = tf.get_variable("W1", shape=[WH, FULL_D], initializer=xavier_init(WH, FULL_D))
+            # Logits (no activation) Layer: L5 Final FC 625 inputs -> 10 outputs
+            self.logits = tf.layers.dense(inputs=dropout4, units=10)
 
-    fc1_biases = tf.Variable(tf.constant(0.1, shape=[FULL_D]))
+        # define cost/loss & optimizer
+        self.cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+            logits=self.logits, labels=self.Y))
+        self.optimizer = tf.train.AdamOptimizer(
+            learning_rate=learning_rate).minimize(self.cost)
 
+        correct_prediction = tf.equal(
+            tf.argmax(self.logits, 1), tf.argmax(self.Y, 1))
+        self.accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-    # fc11_weights = tf.Variable(  # fully connected, depth 512.
-    #     tf.truncated_normal([512, 512],
-    #                         stddev=0.1,
-    #                         seed=SEED))
-    # fc11_weights = tf.get_variable("W11", shape=[512, 512], initializer=xavier_init(512, 512))
-    # fc11_biases = tf.Variable(tf.constant(0.1, shape=[512]))
+    def predict(self, x_test, training=False):
+        return self.sess.run(self.logits,
+                             feed_dict={self.X: x_test, self.training: training})
 
+    def get_accuracy(self, x_test, y_test, training=False):
+        return self.sess.run(self.accuracy,
+                             feed_dict={self.X: x_test,
+                                        self.Y: y_test, self.training: training})
 
-    # fc2_weights = tf.Variable(
-    #     tf.truncated_normal([FULL_D, NUM_LABELS],
-    #                         stddev=0.1,
-    #                         seed=SEED))
-    fc2_weights = tf.get_variable("W2", shape=[FULL_D, NUM_LABELS], initializer=xavier_init(FULL_D, NUM_LABELS))
+    def train(self, x_data, y_data, training=True):
+        return self.sess.run([self.cost, self.optimizer], feed_dict={
+            self.X: x_data, self.Y: y_data, self.training: training})
 
+# initialize
+sess = tf.Session()
+m1 = Model(sess, "m1")
 
-    fc2_biases = tf.Variable(tf.constant(0.1, shape=[NUM_LABELS]))
+sess.run(tf.global_variables_initializer())
 
+print('Learning Started!')
 
-    # We will replicate the model structure for the training subgraph, as well
-    # as the evaluation subgraphs, while sharing the trainable parameters.
-    def model(data, train):
-        """The Model definition."""
-        # 2D convolution, with 'SAME' padding (i.e. the output feature map has
-        # the same size as the input). Note that {strides} is a 4D array whose
-        # shape matches the data layout: [image index, y, x, depth].
-        # conv = tf.nn.conv2d(data,
-        #                     conv1_weights,
-        #                     strides=[1, 1, 1, 1],
-        #                     padding=CONV_1_PADDING)
-        conv = tf.nn.conv1d(data,conv1_weights, stride=1,padding="SAME")################################################################################   must change
+# train my model
+for epoch in range(training_epochs):
+    avg_cost = 0
+    total_batch = int(mnist.train.num_examples / batch_size)
 
-        print('data', data)
-        print('conv1_weights', conv1_weights)
-        print('conv', conv)
-        # Bias and rectified linear non-linearity.
-        relu = tf.nn.relu(tf.nn.bias_add(conv, conv1_biases))
-        # relu = tf.nn.dropout(relu,d_rate)
-        print(relu)
-        #relu = tf.nn.dropout(relu, 0.5)
-        # Max pooling. The kernel size spec {ksize} also follows the layout of
-        # the data. Here we have a pooling window of 2, and a stride of 2.
+    for i in range(total_batch):
+        c, _ = m1.train(batch_xs, batch_ys)
+        avg_cost += c / total_batch
 
-        if True:
-            # pool = tf.nn.max_pool(relu,
-            #                   ksize=[1, POOL_1_k ],
-            #                   strides=[1, POOL_1],
-            #                   padding='SAME')
-            pool = tf.layers.max_pooling1d(relu,POOL_1,strides=POOL_1, padding='VALID')
-            print(pool)
-        else:
-            pool = relu
-            print(pool)
+    print('Epoch:', '%04d' % (epoch + 1), 'cost =', '{:.9f}'.format(avg_cost))
 
-        # conv = tf.nn.conv2d(pool,
-        #                     conv2_weights,
-        #                     strides=[1, 1, 1, 1],
-        #                     padding='SAME')
-        conv = tf.nn.conv1d(pool, conv2_weights, stride=1, padding='SAME')
-        relu = tf.nn.relu(tf.nn.bias_add(conv, conv2_biases))
-        # relu = tf.nn.dropout(relu,d_rate)
+print('Learning Finished!')
 
-        if True:
-            # pool = tf.nn.max_pool(relu,
-            #                   ksize=[1, POOL_2_k],
-            #                   strides=[1, POOL_2],
-            #                   padding='SAME')
-            pool = tf.layers.max_pooling1d(relu, POOL_2, strides=POOL_2,padding='VALID')
-            print(pool)
-        else:
-            pool = relu
-            print(pool)
-
-
-        # conv = tf.nn.conv2d(pool,
-        #                    conv3_weights,
-        #                    strides=[1, 1, 1, 1],
-        #                    padding='SAME')
-        print('data', numpy.shape(data))
-        conv = tf.nn.conv1d(pool, conv3_weights, stride=1, padding="SAME")
-        relu = tf.nn.relu(tf.nn.bias_add(conv, conv3_biases))
-        # relu = tf.nn.dropout(relu, d_rate)
-        if True:
-            # pool = tf.nn.max_pool(relu,
-            #                  ksize=[1, POOL_3_k],
-            #                  strides=[1, POOL_3],
-            #                  padding='SAME')
-            pool = tf.layers.max_pooling1d(relu, POOL_3, strides=POOL_3,padding='VALID')
-        else:
-            pool = relu
-            print(pool)
-
-
-        # Reshape the feature map cuboid into a 2D matrix to feed it to the
-        # fully connected layers.
-        pool_shape = pool.get_shape().as_list()
-        print(pool_shape)
-        reshape = tf.reshape(
-            pool,
-            [pool_shape[0], pool_shape[1] * pool_shape[2] ])
-
-        print(reshape)
-        print(fc1_weights)
-        print(fc1_biases)
-        # Fully connected layer. Note that the '+' operation automatically
-        # broadcasts the biases.
-        hidden = tf.nn.relu(tf.matmul(reshape, fc1_weights) + fc1_biases)
-        #hidden = tf.nn.dropout(hidden, 0.5, seed=SEED)
-        print("hidden", hidden)
-        # print fc11
-        # hidden = tf.nn.relu(tf.matmul(hidden, fc11_weights) + fc11_biases)
-
-
-        # Add a 50% dropout during training only. Dropout also scales
-        # activations such that no rescaling is needed at evaluation time.
-        print('before train work')
-        if train:
-            hidden = tf.nn.dropout(hidden, 0.5, seed=SEED)
-            print('train work')
-        return tf.matmul(hidden, fc2_weights) + fc2_biases
-
-    # Training computation: logits + cross-entropy loss.
-    logits = model(train_data_node, True)
-    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
-        logits=logits, labels=train_labels_node))
-
-    # L2 regularization for the fully connected parameters. + tf.nn.l2_loss(fc11_weights) + tf.nn.l2_loss(fc11_biases) +
-
-    regularizers = (tf.nn.l2_loss(fc1_weights) + tf.nn.l2_loss(fc1_biases) +tf.nn.l2_loss(fc2_weights) + tf.nn.l2_loss(fc2_biases))
-    # Add the regularization term to the loss.
-    loss += 5e-4 * regularizers
-    # loss += 0
-
-    # Optimizer: set up a variable that's incremented once per batch and
-    # controls the learning rate decay.
-    batch = tf.Variable(0)
-    saver = tf.train.Saver(tf.all_variables())
-
-    # Decay once per epoch, using an exponential schedule starting at 0.01.
-    learning_rate = tf.train.exponential_decay(
-        0.0001,                # Base learning rate.
-        batch * BATCH_SIZE,  # Current index into the dataset.
-        train_size,          # Decay step.
-        0.95,                # Decay rate.
-        staircase=True)
-    # Use simple momentum for the optimization.
-    optimizer = tf.train.AdamOptimizer(learning_rate,
-                                           0.9).minimize(loss,
-                                                         global_step=batch)
-    #filter_summary = tf.image_summary("s", conv1_weights)
-
-    # Predictions for the minibatch, validation set and test set.
-    train_prediction = tf.nn.softmax(logits)
-    # We'll compute them only once in a while by calling their {eval()} method.
-    validation_prediction = tf.nn.softmax(model(validation_data_node,False))
-
-    # Create a local session to run this computation.
-    with tf.Session() as s:
-        # Run all the initializers to prepare the trainable parameters.
-        tf.initialize_all_variables().run()
-        print('Initialized!')
-
-        matrix_test = [[0 for col in range(len(STATES))] for row in range(len(STATES))]
-        ##summary_writer = tf.train.SummaryWriter(FLAGS.train_dir,
-        ##                                    graph_def=s.graph_def)
-        # Loop through training steps.
-        for step in range(int(num_epochs * train_size / BATCH_SIZE)):
-            # Compute the offset of the current minibatch in the data.
-            # Note that we could use better randomization across epochs.
-            offset = (step * BATCH_SIZE) % (train_size - BATCH_SIZE)
-            #  batch_data = train_data[offset:(offset + BATCH_SIZE), :, :, :]
-            batch_data = train_data[offset:(offset + BATCH_SIZE), :, :]
-            batch_labels = train_labels[offset:(offset + BATCH_SIZE)]
-            # This dictionary maps the batch data (as a numpy array) to the
-            # node in the graph is should be fed to.
-            feed_dict = {train_data_node: batch_data,
-                         train_labels_node: batch_labels}
-            # Run the graph and fetch some of the nodes.
-            _, l, lr, predictions = s.run(
-                [optimizer, loss, learning_rate, train_prediction],
-                feed_dict=feed_dict)
-            # predictions = s.run(train_prediction,
-            #     feed_dict=feed_dict)
-            print('optimizer')
-            print(_)
-            print('loss')
-            print(l)
-            print('learning_rate')
-            print(lr)
-
-            if step % 100 == 0:
-                print('Epoch %.2f' % (float(step) * BATCH_SIZE / train_size))
-                print('Minibatch loss: %.3f, learning rate: %.6f' % (l, lr))
-                print('Minibatch error: %.1f%%' % error_rate(predictions,
-                                                             batch_labels))
-                print('Validation error: %.1f%%' % error_rate(
-                    validation_prediction.eval(), validation_labels))
-                #print 'logits: ', train_prediction.eval()
-                sys.stdout.flush()
-                checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
-        of = open(res_file_name, 'a')
-        for i in range(16):
-            test_data_node = tf.constant(test_data_list[i])
-            test_labels = test_labels_list[i]
-            test_prediction = tf.nn.softmax(model(test_data_node, False))
-            # test_error = error_rate(test_prediction.eval(), test_labels)
-            test_error, matrix_test \
-                = error_draw_matrix_rate(test_prediction.eval(), test_labels, matrix_test)
-
-            of.write('Test false alarm: %.1f%%\n' % false_alarm(
-                test_prediction.eval(), test_labels))
-            of.write('Test correct detection: %.1f%%\n' % correct_detection(
-                test_prediction.eval(), test_labels))
-            of.write('Test error: %.1f%%\n' % test_error)
-
-            for i in range(len(STATES)):
-                of.write('%s\n,' % matrix_test[i])
-
-            of.flush()
-            print('Test false alarm: %.1f%%' % false_alarm(
-                test_prediction.eval(), test_labels))
-            print('Test correct detection: %.1f%%' % correct_detection(
-                test_prediction.eval(), test_labels))
-            print('Test error: %.1f%%' % test_error)
-            # saver.save(s, "w_0328.ckpt")
-            if FLAGS.self_test:
-                print('test_error', test_error)
-                assert test_error == 0.0, 'expected 0.0 test_error, got %.2f' % (
-                    test_error,)
-
-        of.close()
-
-if __name__ == '__main__':
-    tf.app.run()
+# Test model and check accuracy
+print('Accuracy:', m1.get_accuracy(mnist.test.images, mnist.test.labels))

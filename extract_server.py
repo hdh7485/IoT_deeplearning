@@ -12,7 +12,7 @@ import datetime
 from datetime import timedelta
 from datetime import date
 import MySQLdb
-import pylab
+#import pylab
 import time
 
 import MySQLdb.cursors
