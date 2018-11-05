@@ -7,12 +7,10 @@ import operator
 import collections
 import pickle
 import math
-from sets import Set
 import datetime
 from datetime import timedelta
 from datetime import date
 import MySQLdb
-import pylab
 import time
 
 import MySQLdb.cursors
