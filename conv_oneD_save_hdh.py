@@ -11,17 +11,16 @@ import extractData
 
 import time
 
-batch_xs = [[-10, 0, 0, 0, 0, 0], 
+batch_xs = [[[-10, 0, 0, 0, 0, 0], 
+    [-10, 0, 0, 0, 0, 0], 
     [-10, 0, 0, 0, 0, 0], 
     [-9, -8, 0, 0, 0, 0], 
     [-10, 0, 0, 0, 0, 0], 
-    [-8, -7, 0, 0, 0, 0]]
+    [-8, -7, 0, 0, 0, 0]]]
 
-batch_ys = [1, 0, 0, 0, 0, 0]
+batch_ys = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 tf.set_random_seed(777)  # reproducibility
-
-mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 
 learning_rate = 0.001
 training_epochs = 15
