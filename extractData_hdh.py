@@ -2,6 +2,7 @@ import csv
 from datetime import datetime
 import numpy as np
 import os
+import argparse
 
 class IOTDataset:
     def __init__(self):
@@ -18,11 +19,11 @@ class IOTDataset:
         self.read_target()
         #self.load_cnn_format()
 
-    def load_csv_files(self):
+    def load_csv_files(self, raw_data_directory):
         self.search_paths = []
-        dates = os.listdir("/Users/dongheehan/raw_data/")
+        dates = os.listdir(raw_data_directory)
         for date in dates:
-            self.search_paths.append(os.path.join("/Users/dongheehan/raw_data", date))
+            self.search_paths.append(os.path.join(raw_data_directory, date))
         
         self.csv_path_list = []
         for path in self.search_paths:
@@ -36,7 +37,7 @@ class IOTDataset:
                 for file in files:
                     if file.endswith(".csv"):
                         self.csv_files.append(os.path.join(root, file))
-        #print(self.csv_files)
+        print(self.csv_files)
 
     def read_feature(self):
         f = open('./data/beacon_data_170201to170327.csv', 'r')
@@ -95,8 +96,14 @@ class IOTDataset:
         return datetime.strptime(time_string, '%Y-%m-%d %H:%M:%S')
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data_directory", default="../raw_data/")
+    args = parser.parse_args()
+
     data = IOTDataset()
-    data.load_csv_files()
+
+    #data.load_csv_files("/Users/dongheehan/raw_data/")
+    data.load_csv_files(args.data_directory)
     #print(data.cnn_feature_data)
 
 if __name__ == "__main__":
