@@ -3,10 +3,35 @@ from datetime import datetime
 import numpy as np
 import os
 import argparse
+import json
+import pprint
 
 class IOTDataset:
     def __init__(self):
-        self.feature_names_list = ['loc_cd', 'rssi', 'doctor_id', 'reg_date', 'magnetic_field_x', 'magnetic_field_y', 'magnetic_field_z', 'wifi1', 'wifi2', 'wifi3', 'wifi4', 'index']
+        self.feature_names_list = [
+          "millisecond",
+          "rssi",
+          "beacon_loc_cd",
+          "wifi_rssi",
+          "wifi_rssi_2",
+          "wifi_rssi_3",
+          "wifi_rssi_4",
+          "doctor_id",
+          "gyroscope_field_x",
+          "gyroscope_field_y",
+          "gyroscope_field_z",
+          "accelerometer_x",
+          "accelerometer_y",
+          "accelerometer_z",
+          "magnetic_field_z",
+          "magnetic_field_y",
+          "magnetic_field_x",
+          "accuracy",
+          "txPower",
+          "act_type",
+          "real_loc_cd",
+          "b_reg_date"
+          ]
         self.feature_data_list = []
 
         self.target_time_list = []
@@ -17,16 +42,97 @@ class IOTDataset:
 
         self.read_feature()
         self.read_target()
-        #self.load_cnn_format()
+        self.load_cnn_format()
 
-    def load_csv_files(self, raw_data_directory):
-        self.search_paths = []
+    def make_beacon_name_list(self, beacon_list):
+        self.beacon_name_list = []
+        for beacon in beacon_list:
+            if beacon not in self.beacon_name_list:
+                self.beacon_name_list.append(beacon)
+        self.beacon_name_list.sort()
+
+    def make_target_name_list(self, target_list):
+        self.target_name_list = []
+        for target in target_list:
+            if target not in self.target_name_list:
+                self.target_name_list.append(target)
+        self.target_name_list.sort()
+
+    def load_json_files(self, raw_data_directory):
+        self.date_paths = []
         dates = os.listdir(raw_data_directory)
         for date in dates:
-            self.search_paths.append(os.path.join(raw_data_directory, date))
+            if int(date) >= 20170403:
+                self.date_paths.append(os.path.join(raw_data_directory, date))
+        
+        self.json_path_list = []
+        for path in self.date_paths:
+            for file in os.listdir(path):
+                if file.endswith("log_treat_json"):
+                    self.json_path_list.append(os.path.join(path, file))
+
+        self.json_files = []
+        for path in self.json_path_list:
+            for root, dirs, files in os.walk(path):
+                for file in files:
+                    if file.endswith(".txt"):
+                        self.json_files.append(os.path.join(root, file))
+
+        self.json_time_beacon_rssi = []
+        self.json_target_list = []
+        for json_file in self.json_files:
+            with open(json_file, 'r') as f:
+                loaded_json_data = json.load(f)
+            f.close()
+
+            for beacon_data in loaded_json_data.values():
+                for a_data in beacon_data:
+                    for b_data in a_data.values():
+                        for c_data in b_data:
+                            self.json_time_beacon_rssi.append([c_data['millisecond'], c_data['beacon_loc_cd'], c_data['rssi']])
+                            self.json_target_list.append([c_data['millisecond'], c_data['real_loc_cd']])
+        self.json_time_beacon_rssi.sort(key=lambda x: x[0])
+        self.json_target_list.sort(key=lambda x: x[0])
+        self.json_target = np.array(self.json_target_list)
+
+        #print(self.beacon_name_list)
+        #pprint.pprint(self.json_time_beacon_rssi)
+        #pprint.pprint(self.json_target_list)
+
+    def make_time_onehot_beacon_table(self):
+        self.make_beacon_name_list(np.array(self.json_time_beacon_rssi)[:, 1])
+        self.json_time_rssi_table_list = []
+        for data in self.json_time_beacon_rssi:
+            row = list(np.zeros(len(self.beacon_name_list)+1))
+            row[0] = data[0]
+            row[self.beacon_name_list.index(data[1])+1] = data[2]
+            self.json_time_rssi_table_list.append(row)
+        self.json_time_rssi_table = np.array(self.json_time_rssi_table_list)
+        #print(self.json_time_rssi_table)
+        return self.json_time_rssi_table
+
+    def make_time_onehot_target_table(self):
+        self.make_target_name_list(np.array(self.json_target_list)[:, 1])
+        self.json_target_table_list = []
+        for data in self.json_target_list:
+            row = list(np.zeros(len(self.target_name_list)+1))
+            row[0] = data[0]
+            row[self.target_name_list.index(data[1])+1] = 1
+            self.json_target_table_list.append(row)
+        self.json_target_table = np.array(self.json_target_table_list)
+        #print(self.json_target_table)
+        return self.json_target_table
+
+    def load_csv_files(self, raw_data_directory):
+        self.date_paths = []
+        dates = os.listdir(raw_data_directory)
+        for date in dates:
+            if int(date) >= 20170403:
+                self.date_paths.append(os.path.join(raw_data_directory, date))
+        #print(self.date_paths)
         
         self.csv_path_list = []
-        for path in self.search_paths:
+        for path in self.date_paths:
             for file in os.listdir(path):
                 if file.endswith("log_treat_csv"):
                     self.csv_path_list.append(os.path.join(path, file))
@@ -37,7 +143,7 @@ class IOTDataset:
                 for file in files:
                     if file.endswith(".csv"):
                         self.csv_files.append(os.path.join(root, file))
-        print(self.csv_files)
+        #print(self.csv_files)
 
     def read_feature(self):
         f = open('./data/beacon_data_170201to170327.csv', 'r')
@@ -102,9 +208,12 @@ def main():
 
     data = IOTDataset()
 
-    #data.load_csv_files("/Users/dongheehan/raw_data/")
-    data.load_csv_files(args.data_directory)
-    #print(data.cnn_feature_data)
+    data.load_json_files(args.data_directory)
+    beacon_table = data.make_time_onehot_beacon_table()
+    target_table = data.make_time_onehot_target_table()
+
+    print(beacon_table)
+    print(target_table)
 
 if __name__ == "__main__":
     main()
