@@ -4,8 +4,8 @@ import tensorflow as tf
 import numpy as np
 
 learning_rate = 0.001
-training_epochs = 15
-batch_size = 100
+training_epochs = 50
+batch_size = 10
 
 class Model:
     def __init__(self, sess, name):
@@ -69,7 +69,7 @@ class Model:
         return self.sess.run(self.accuracy, feed_dict={self.X_img: x_test, self.Y: y_test, self.keep_prob: keep_prop})
 
     def train(self, x_data, y_data, keep_prop=0.7):
-        return self.sess.run([self.cost, self.optimizer], feed_dict={
+        return self.sess.run([self.cost, self.optimizer, self.accuracy], feed_dict={
             self.X_img: x_data, self.Y: y_data, self.keep_prob: keep_prop})
 
 def main():
@@ -88,12 +88,14 @@ def main():
     #(237017, 15)
 
     beacon_split_table = beacon_table[0:237000, 1:].reshape(47400, 5, 24)
-    beacon_train, beacon_test = beacon_split_table[:40000, :, :], beacon_split_table[40000:, :, :]
+    beacon_train, beacon_test = beacon_split_table[:40000, :, :, np.newaxis], beacon_split_table[40000:, :, :, np.newaxis]
     target_split_table = target_table[0:237000, 1:].reshape(47400, 5, 14)
-    target_train, target_test = target_split_table[:40000, :, :], beacon_split_table[40000:, :, :]
+    target_train, target_test = target_split_table[:40000, -1, :], target_split_table[40000:, -1, :]
 
-    print(beacon_split_table.shape)
-    print(target_split_table.shape)
+    print(beacon_train.shape)
+    print(beacon_test.shape)
+    print(target_train.shape)
+    print(target_test.shape)
 
     # initialize
     sess = tf.Session()
@@ -106,22 +108,22 @@ def main():
     # train my model
     for epoch in range(training_epochs):
         avg_cost = 0
-        total_batch = int(47400 / batch_size)
+        total_batch = int(target_test.shape[0] / batch_size)
 
         for i in range(total_batch):
             #batch_xs = beacon_split_table[i*batch_size:(i+1)*batch_size, :, :, np.newaxis]
             #batch_ys = target_split_table[i*batch_size:(i+1)*batch_size, -1, :]
-            batch_xs = beacon_train[i*batch_size:(i+1)*batch_size, :, :, np.newaxis]
-            batch_ys = target_train[i*batch_size:(i+1)*batch_size, -1, :]
-            c, _ = m1.train(batch_xs, batch_ys)
+            batch_xs = beacon_train[i*batch_size:(i+1)*batch_size, :, :, :]
+            batch_ys = target_train[i*batch_size:(i+1)*batch_size, :]
+            c, _, accuracy = m1.train(batch_xs, batch_ys)
             avg_cost += c / total_batch
 
-        print('Epoch:', '%04d' % (epoch + 1), 'cost =', '{:.9f}'.format(avg_cost))
+        print('Epoch:', '%04d' % (epoch + 1), 'cost =', '{:.9f}, accuracy:{}'.format(avg_cost, accuracy))
 
     print('Learning Finished!')
 
     # Test model and check accuracy
-    # print('Accuracy:', m1.get_accuracy(beacon_test, target_test))
+    print('Accuracy:', m1.get_accuracy(beacon_test[:, :, :, :], target_test[:, :]))
 
 
 if __name__ == "__main__":
