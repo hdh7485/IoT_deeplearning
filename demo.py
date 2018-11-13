@@ -3,9 +3,9 @@ import extractData_hdh
 import tensorflow as tf
 import numpy as np
 
-learning_rate = 0.001
-training_epochs = 50
-batch_size = 10
+learning_rate = 0.0001
+training_epochs = 500
+batch_size = 5
 
 class Model:
     def __init__(self, sess, name):
@@ -30,24 +30,24 @@ class Model:
             #L1 = tf.nn.max_pool(L1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
             #5 24 5
 
-            W2 = tf.Variable(tf.random_normal([2, 2, 10, 50], stddev=0.01))
+            W2 = tf.Variable(tf.random_normal([2, 2, 10, 20], stddev=0.01))
             L2 = tf.nn.conv2d(L1, W2, strides=[1, 1, 1, 1], padding='SAME')
             L2 = tf.nn.relu(L2)
             L2 = tf.nn.max_pool(L2, ksize=[1, 2, 2, 1],
                                 strides=[1, 2, 2, 1], padding='SAME')
             L2 = tf.nn.dropout(L2, keep_prob=self.keep_prob)
-            # L2 ImgIn shape=(?, 3, 12, 50)
-            L2_flat = tf.reshape(L2, [-1, 50 * 3 * 12])
+            # L2 ImgIn shape=(?, 3, 12, 20)
+            L2_flat = tf.reshape(L2, [-1, 20 * 3 * 12])
 
 
-            W4 = tf.get_variable("W4", shape=[50 * 3 * 12, 400],
+            W4 = tf.get_variable("W4", shape=[20 * 3 * 12, 200],
                                  initializer=tf.contrib.layers.xavier_initializer())
-            b4 = tf.Variable(tf.random_normal([400]))
+            b4 = tf.Variable(tf.random_normal([200]))
             L4 = tf.nn.relu(tf.matmul(L2_flat, W4) + b4)
             L4 = tf.nn.dropout(L4, keep_prob=self.keep_prob)
 
             # L5 Final FC 400 inputs -> 14 outputs
-            W5 = tf.get_variable("W5", shape=[400, 14],
+            W5 = tf.get_variable("W5", shape=[200, 14],
                                  initializer=tf.contrib.layers.xavier_initializer())
             b5 = tf.Variable(tf.random_normal([14]))
             self.logits = tf.matmul(L4, W5) + b5
@@ -88,9 +88,10 @@ def main():
     #(237017, 15)
 
     beacon_split_table = beacon_table[0:237000, 1:].reshape(47400, 5, 24)
-    beacon_train, beacon_test = beacon_split_table[:40000, :, :, np.newaxis], beacon_split_table[40000:, :, :, np.newaxis]
+    beacon_train, beacon_test = beacon_split_table[:47300, :, :, np.newaxis], beacon_split_table[47300:, :, :, np.newaxis]
+    print(beacon_test[0])
     target_split_table = target_table[0:237000, 1:].reshape(47400, 5, 14)
-    target_train, target_test = target_split_table[:40000, -1, :], target_split_table[40000:, -1, :]
+    target_train, target_test = target_split_table[:47300, -1, :], target_split_table[47300:, -1, :]
 
     print(beacon_train.shape)
     print(beacon_test.shape)
