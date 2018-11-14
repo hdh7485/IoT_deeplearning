@@ -5,6 +5,7 @@ import os
 import argparse
 import json
 import pprint
+import pickle
 
 class IOTDataset:
     def __init__(self):
@@ -33,16 +34,10 @@ class IOTDataset:
           "b_reg_date"
           ]
         self.feature_data_list = []
-
         self.target_time_list = []
         self.target_names_list = []
         self.target_list = []
-
         self.first_line = True
-
-        self.read_feature()
-        self.read_target()
-        self.load_cnn_format()
 
     def make_beacon_name_list(self, beacon_list):
         self.beacon_name_list = []
@@ -58,69 +53,106 @@ class IOTDataset:
                 self.target_name_list.append(target)
         self.target_name_list.sort()
 
-    def load_json_files(self, raw_data_directory):
-        self.date_paths = []
-        dates = os.listdir(raw_data_directory)
-        for date in dates:
-            if int(date) >= 20170403:
-                self.date_paths.append(os.path.join(raw_data_directory, date))
+    def load_json_files(self, raw_data_directory='../raw_data', use_saved_data=True):
+        saved_data_directory = os.path.join(raw_data_directory, 'raw_data.pickle')
+        if use_saved_data and os.path.isfile(saved_data_directory):
+            print('start load the saved json data')
+            with open(saved_data_directory, 'rb') as f:
+                pickle_data = pickle.load(f)
+            self.json_time_beacon_rssi = pickle_data[0]
+            self.json_target_list = pickle_data[1]
+            self.json_target = pickle_data[2]
+
+        else:
+            print('No saved json data')
+            self.date_paths = []
+            dates = os.listdir(raw_data_directory)
+            for date in dates:
+                if int(date) >= 20170403:
+                    self.date_paths.append(os.path.join(raw_data_directory, date))
         
-        self.json_path_list = []
-        for path in self.date_paths:
-            for file in os.listdir(path):
-                if file.endswith("log_treat_json"):
-                    self.json_path_list.append(os.path.join(path, file))
+            self.json_path_list = []
+            for path in self.date_paths:
+                for file in os.listdir(path):
+                    if file.endswith("log_treat_json"):
+                        self.json_path_list.append(os.path.join(path, file))
 
-        self.json_files = []
-        for path in self.json_path_list:
-            for root, dirs, files in os.walk(path):
-                for file in files:
-                    if file.endswith(".txt"):
-                        self.json_files.append(os.path.join(root, file))
+            self.json_files = []
+            for path in self.json_path_list:
+                for root, dirs, files in os.walk(path):
+                    for file in files:
+                        if file.endswith(".txt"):
+                            self.json_files.append(os.path.join(root, file))
 
-        self.json_time_beacon_rssi = []
-        self.json_target_list = []
-        for json_file in self.json_files:
-            with open(json_file, 'r') as f:
-                loaded_json_data = json.load(f)
-            f.close()
+            self.json_time_beacon_rssi = []
+            self.json_target_list = []
+            for json_file in self.json_files:
+                with open(json_file, 'r') as f:
+                    loaded_json_data = json.load(f)
+                f.close()
 
-            for beacon_data in loaded_json_data.values():
-                for a_data in beacon_data:
-                    for b_data in a_data.values():
-                        for c_data in b_data:
-                            self.json_time_beacon_rssi.append([c_data['millisecond'], c_data['beacon_loc_cd'], c_data['rssi']])
-                            self.json_target_list.append([c_data['millisecond'], c_data['real_loc_cd']])
-        self.json_time_beacon_rssi.sort(key=lambda x: x[0])
-        self.json_target_list.sort(key=lambda x: x[0])
-        self.json_target = np.array(self.json_target_list)
+                for beacon_data in loaded_json_data.values():
+                    for a_data in beacon_data:
+                        for b_data in a_data.values():
+                            for c_data in b_data:
+                                self.json_time_beacon_rssi.append([c_data['millisecond'], c_data['beacon_loc_cd'], c_data['rssi']])
+                                self.json_target_list.append([c_data['millisecond'], c_data['real_loc_cd']])
 
-        #print(self.beacon_name_list)
-        #pprint.pprint(self.json_time_beacon_rssi)
-        #pprint.pprint(self.json_target_list)
+            self.json_time_beacon_rssi.sort(key=lambda x: x[0])
+            self.json_target_list.sort(key=lambda x: x[0])
+            self.json_target = np.array(self.json_target_list)
 
-    def make_time_onehot_beacon_table(self):
+            with open(saved_data_directory, 'wb') as f:
+                pickle.dump([self.json_time_beacon_rssi, self.json_target_list, self.json_target], f)
+        print('finish load josn files')
+
+    def make_time_onehot_beacon_table(self, pickle_data_directory='../raw_data/onehot_beacon_table.pickle', use_saved_data=True):
         self.make_beacon_name_list(np.array(self.json_time_beacon_rssi)[:, 1])
-        self.json_time_rssi_table_list = []
-        for data in self.json_time_beacon_rssi:
-            row = list(np.zeros(len(self.beacon_name_list)+1))
-            row[0] = data[0]
-            row[self.beacon_name_list.index(data[1])+1] = data[2]
-            self.json_time_rssi_table_list.append(row)
-        self.json_time_rssi_table = np.array(self.json_time_rssi_table_list)
-        #print(self.json_time_rssi_table)
+
+        if use_saved_data and os.path.isfile(pickle_data_directory):
+            print('loading the saved pickle data')
+            with open(pickle_data_directory, 'rb') as f:
+                pickle_data = pickle.load(f)
+            self.json_time_rssi_table_list = pickle_data[0]
+            self.json_time_rssi_table = pickle_data[1]
+
+        else:
+            print('No saved pickle data')
+            self.json_time_rssi_table_list = [] 
+            for data in self.json_time_beacon_rssi:
+                row = list(np.zeros(len(self.beacon_name_list)+1))
+                row[0] = data[0]
+                row[self.beacon_name_list.index(data[1])+1] = data[2]
+                self.json_time_rssi_table_list.append(row)
+            self.json_time_rssi_table = np.array(self.json_time_rssi_table_list)
+
+            with open(pickle_data_directory, 'wb') as f:
+                pickle.dump([self.json_time_rssi_table_list, self.json_time_rssi_table], f)
+        print('finish make beacon table')
         return self.json_time_rssi_table
 
-    def make_time_onehot_target_table(self):
+    def make_time_onehot_target_table(self, pickle_data_directory='../raw_data/onehot_target_table.pickle', use_saved_data=True):
         self.make_target_name_list(np.array(self.json_target_list)[:, 1])
-        self.json_target_table_list = []
-        for data in self.json_target_list:
-            row = list(np.zeros(len(self.target_name_list)+1))
-            row[0] = data[0]
-            row[self.target_name_list.index(data[1])+1] = 1
-            self.json_target_table_list.append(row)
-        self.json_target_table = np.array(self.json_target_table_list)
-        #print(self.json_target_table)
+        if use_saved_data and os.path.isfile(pickle_data_directory):
+            print('loading the saved pickle data')
+            with open(pickle_data_directory, 'rb') as f:
+                pickle_data = pickle.load(f)
+            self.json_target_table_list = pickle_data[0]
+            self.json_target_table = pickle_data[1]
+
+        else:
+            print('No saved pickle data')
+            self.json_target_table_list = []
+            for data in self.json_target_list:
+                row = list(np.zeros(len(self.target_name_list)+1))
+                row[0] = data[0]
+                row[self.target_name_list.index(data[1])+1] = 1
+                self.json_target_table_list.append(row)
+            self.json_target_table = np.array(self.json_target_table_list)
+
+            with open(pickle_data_directory, 'wb') as f:
+                pickle.dump([self.json_target_table_list, self.json_target_table], f)
+        print('finish make target table')
         return self.json_target_table
 
     def load_csv_files(self, raw_data_directory):
