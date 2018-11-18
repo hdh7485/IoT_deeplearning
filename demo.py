@@ -3,14 +3,14 @@ import extractData_hdh
 import tensorflow as tf
 import numpy as np
 
-learning_rate = 0.0001
-training_epochs = 500
+training_epochs = 100
 batch_size = 5
 
 class Model:
-    def __init__(self, sess, name):
+    def __init__(self, sess, name, learning_rate):
         self.sess = sess
         self.name = name
+        self.learning_rate = learning_rate
         self._build_net()
 
     def _build_net(self):
@@ -23,17 +23,16 @@ class Model:
             self.Y = tf.placeholder(tf.float32, [None, 14])
             
             with tf.name_scope("convolution1"):
-                W1 = tf.Variable(tf.random_normal([2, 2, 1, 10], stddev=0.01))
+                W1 = tf.get_variable("W1", shape=[2, 2, 1, 10])
                 L1 = tf.nn.conv2d(self.X_img, W1, strides=[1, 1, 1, 1], padding='SAME')
                 L1 = tf.nn.relu(L1)
                 L1 = tf.nn.dropout(L1, keep_prob=self.keep_prob)
                 #L1 = tf.nn.max_pool(L1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
                 #5 24 5
                 self.W1_hist = tf.summary.histogram("weights1", W1)
-                self.convolution1_hist = tf.summary.histogram("convolution1", W1)
 
             with tf.name_scope("convolution2"):
-                W2 = tf.Variable(tf.random_normal([2, 2, 10, 20], stddev=0.01))
+                W2 = tf.get_variable("W2", shape=[2, 2, 10, 20])
                 L2 = tf.nn.conv2d(L1, W2, strides=[1, 1, 1, 1], padding='SAME')
                 L2 = tf.nn.relu(L2)
                 L2 = tf.nn.max_pool(L2, ksize=[1, 2, 2, 1],
@@ -43,35 +42,32 @@ class Model:
                 L2_flat = tf.reshape(L2, [-1, 20 * 3 * 12])
 
                 self.W2_hist = tf.summary.histogram("weights2", W2)
-                self.convolution2_hist = tf.summary.histogram("convolution2", W2)
 
             with tf.name_scope("convolution3"):
-                W3 = tf.get_variable("W4", shape=[20 * 3 * 12, 200],
+                W3 = tf.get_variable("W3", shape=[20 * 3 * 12, 200],
                                      initializer=tf.contrib.layers.xavier_initializer())
-                b3 = tf.Variable(tf.random_normal([200]))
+                b3 = tf.get_variable("b3", shape=[200])
                 L3 = tf.nn.relu(tf.matmul(L2_flat, W3) + b3)
                 L3 = tf.nn.dropout(L3, keep_prob=self.keep_prob)
 
-                W3_hist = tf.summary.histogram("weights3", W3)
-                convolution3_hist = tf.summary.histogram("convolution3", W3)
+                self.W3_hist = tf.summary.histogram("weights3", W3)
 
             with tf.name_scope("fully_connected"):
                 # L5 Final FC 400 inputs -> 14 outputs
-                FC_W = tf.get_variable("W5", shape=[200, 14],
+                FC_W = tf.get_variable("FC_W", shape=[200, 14],
                                      initializer=tf.contrib.layers.xavier_initializer())
-                FC_b = tf.Variable(tf.random_normal([14]))
+                FC_b = tf.get_variable("FC_b", shape=[14])
                 self.logits = tf.matmul(L3, FC_W) + FC_b
 
-                self.FC_W_hist = tf.summary.histogram("weights1", FC_W)
-                self.FC_b_hist = tf.summary.histogram("bias1", FC_b)
-                self.FC_layer_hist = tf.summary.histogram("fully_connected", FC_W)
+                self.FC_W_hist = tf.summary.histogram("weights", FC_W)
+                self.FC_b_hist = tf.summary.histogram("bias", FC_b)
 
         # define cost/loss & optimizer
         with tf.name_scope("cost"):
             self.cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.logits, labels=self.Y))  
             self.cost_summ = tf.summary.scalar("cost", self.cost)
 
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(self.cost)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.cost)
 
         correct_prediction = tf.equal(tf.argmax(self.logits, 1), tf.argmax(self.Y, 1))
         self.accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
@@ -116,12 +112,10 @@ def main():
 
     # initialize
     sess = tf.Session()
-    
-    writer = tf.summary.FileWriter("./logs/iot_r0_01")
-    writer.add_graph(sess.graph)
 
-    m1 = Model(sess, "m1")
-
+    m1 = Model(sess, "m1", 0.00001)
+    writer = tf.summary.FileWriter("./logs/iot_r0_02")
+    writer.add_graph(m1.sess.graph)
     sess.run(tf.global_variables_initializer())
 
     print('Learning Started!')
