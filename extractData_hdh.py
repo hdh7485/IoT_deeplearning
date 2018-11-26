@@ -254,18 +254,12 @@ def main():
     data.load_json_files(args.data_directory)
     beacon_table = data.make_time_onehot_beacon_table()
     target_table = data.make_time_onehot_target_table()
-<<<<<<< HEAD
-
-    print(beacon_table)
-    print(target_table)
-=======
     expand_target_table = data.expand_time_onehot_beacon_table(beacon_table, 4)[:, :, 1:]
 
     print(beacon_table.shape)
     print(target_table.shape)
     print(expand_target_table.shape)
     print(expand_target_table)
->>>>>>> add_tensorboard
 
 if __name__ == "__main__":
     main()
