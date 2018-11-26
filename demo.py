@@ -2,9 +2,10 @@ import argparse
 import extractData_hdh
 import tensorflow as tf
 import numpy as np
+from sklearn.cross_validation import train_test_split
 
-training_epochs = 300
-batch_size = 10
+training_epochs = 500
+batch_size = 100
 
 class Model:
     def __init__(self, sess, name, learning_rate):
@@ -84,6 +85,8 @@ class Model:
             self.X_img: x_data, self.Y: y_data, self.keep_prob: keep_prop})
 
 def main():
+    train, valid, test = 0.7, 0.2, 0.1
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_directory", default="../raw_data/")
     args = parser.parse_args()
@@ -98,11 +101,20 @@ def main():
     print(target_table)
     #(237017, 15)
 
-    beacon_split_table = beacon_table[0:237016, 1:].reshape(59254, 4, 24)
-    beacon_train, beacon_test = beacon_split_table[:59000, :, :, np.newaxis], beacon_split_table[254:, :, :, np.newaxis]
-    print(beacon_test[0])
-    target_split_table = target_table[0:237016, 1:].reshape(59254, 4, 14)
-    target_train, target_test = target_split_table[:59000, -1, :], target_split_table[254:, -1, :]
+    #beacon_split_table = beacon_table[0:237016, 1:].reshape(59254, 4, 24)
+    #beacon_train, beacon_test = beacon_split_table[:59000, :, :, np.newaxis], beacon_split_table[254:, :, :, np.newaxis]
+    beacon_split_table = data.expand_time_onehot_beacon_table(beacon_table, 4)[:, :, 1:, np.newaxis]
+
+    #target_split_table = target_table[0:237016, 1:].reshape(59254, 4, 14)
+    #target_train, target_test = target_split_table[:59000, -1, :], target_split_table[254:, -1, :]
+    target_split_table = data.expand_time_onehot_beacon_table(target_table, 4)[:, -1, 1:]
+
+    idx = np.random.permutation(len(beacon_split_table))
+    shuffled_beacon_table, shuffled_target_table = beacon_split_table[idx], target_split_table[idx]
+
+    beacon_train, beacon_test, target_train, target_test = train_test_split(shuffled_beacon_table, shuffled_target_table, test_size=0.3)
+    beacon_valid, beacon_test, target_valid, target_test = train_test_split(beacon_test, target_test, test_size=0.5)
+
     print(beacon_train.shape)
     print(beacon_test.shape)
     print(target_train.shape)
@@ -124,6 +136,8 @@ def main():
         total_batch = int(target_test.shape[0] / batch_size)
 
         for i in range(total_batch):
+            if i%10 == 0:
+                print('Valid Accuracy:', m1.get_accuracy(beacon_valid[:, :, :, :], target_valid[:, :]))
             batch_xs = beacon_train[i*batch_size:(i+1)*batch_size, :, :, :]
             batch_ys = target_train[i*batch_size:(i+1)*batch_size, :]
             summary, c, _, accuracy = m1.train(batch_xs, batch_ys)
