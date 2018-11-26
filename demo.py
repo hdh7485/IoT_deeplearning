@@ -3,8 +3,8 @@ import extractData_hdh
 import tensorflow as tf
 import numpy as np
 
-training_epochs = 100
-batch_size = 5
+training_epochs = 300
+batch_size = 10
 
 class Model:
     def __init__(self, sess, name, learning_rate):
@@ -18,8 +18,7 @@ class Model:
             # dropout (keep_prob) rate  0.7~0.5 on training, but should be 1
             # for testing
             self.keep_prob = tf.placeholder(tf.float32)
-            self.X_img = tf.placeholder(tf.float32, [None, 5, 24])
-            self.X_img = tf.reshape(self.X_img, [-1, 5, 24, 1])
+            self.X_img = tf.placeholder(tf.float32, [None, 4, 24, 1])
             self.Y = tf.placeholder(tf.float32, [None, 14])
             
             with tf.name_scope("convolution1"):
@@ -28,7 +27,7 @@ class Model:
                 L1 = tf.nn.relu(L1)
                 L1 = tf.nn.dropout(L1, keep_prob=self.keep_prob)
                 #L1 = tf.nn.max_pool(L1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
-                #5 24 5
+                #4 24 10
                 self.W1_hist = tf.summary.histogram("weights1", W1)
 
             with tf.name_scope("convolution2"):
@@ -38,15 +37,15 @@ class Model:
                 L2 = tf.nn.max_pool(L2, ksize=[1, 2, 2, 1],
                                     strides=[1, 2, 2, 1], padding='SAME')
                 L2 = tf.nn.dropout(L2, keep_prob=self.keep_prob)
-                # L2 ImgIn shape=(?, 3, 12, 20)
-                L2_flat = tf.reshape(L2, [-1, 20 * 3 * 12])
+                #2 12 2
+                L2_flat = tf.reshape(L2, [-1, 20 * 2 * 12])
 
                 self.W2_hist = tf.summary.histogram("weights2", W2)
 
             with tf.name_scope("convolution3"):
-                W3 = tf.get_variable("W3", shape=[20 * 3 * 12, 200],
+                W3 = tf.get_variable("W3", shape=[20 * 2 * 12, 50],
                                      initializer=tf.contrib.layers.xavier_initializer())
-                b3 = tf.get_variable("b3", shape=[200])
+                b3 = tf.get_variable("b3", shape=[50])
                 L3 = tf.nn.relu(tf.matmul(L2_flat, W3) + b3)
                 L3 = tf.nn.dropout(L3, keep_prob=self.keep_prob)
 
@@ -54,7 +53,7 @@ class Model:
 
             with tf.name_scope("fully_connected"):
                 # L5 Final FC 400 inputs -> 14 outputs
-                FC_W = tf.get_variable("FC_W", shape=[200, 14],
+                FC_W = tf.get_variable("FC_W", shape=[50, 14],
                                      initializer=tf.contrib.layers.xavier_initializer())
                 FC_b = tf.get_variable("FC_b", shape=[14])
                 self.logits = tf.matmul(L3, FC_W) + FC_b
@@ -71,7 +70,7 @@ class Model:
 
         correct_prediction = tf.equal(tf.argmax(self.logits, 1), tf.argmax(self.Y, 1))
         self.accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-        self.accuracy_summ = tf.summary.scalar("accuracy", self.accuracy)
+        self.accuracy_sum = tf.summary.scalar("accuracy", self.accuracy)
         self.merged_summary = tf.summary.merge_all()
 
     def predict(self, x_test, keep_prop=1.0):
@@ -99,12 +98,11 @@ def main():
     print(target_table)
     #(237017, 15)
 
-    beacon_split_table = beacon_table[0:237000, 1:].reshape(47400, 5, 24)
-    beacon_train, beacon_test = beacon_split_table[:47300, :, :, np.newaxis], beacon_split_table[47300:, :, :, np.newaxis]
+    beacon_split_table = beacon_table[0:237016, 1:].reshape(59254, 4, 24)
+    beacon_train, beacon_test = beacon_split_table[:59000, :, :, np.newaxis], beacon_split_table[254:, :, :, np.newaxis]
     print(beacon_test[0])
-    target_split_table = target_table[0:237000, 1:].reshape(47400, 5, 14)
-    target_train, target_test = target_split_table[:47300, -1, :], target_split_table[47300:, -1, :]
-
+    target_split_table = target_table[0:237016, 1:].reshape(59254, 4, 14)
+    target_train, target_test = target_split_table[:59000, -1, :], target_split_table[254:, -1, :]
     print(beacon_train.shape)
     print(beacon_test.shape)
     print(target_train.shape)

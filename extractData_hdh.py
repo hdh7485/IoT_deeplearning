@@ -130,6 +130,11 @@ class IOTDataset:
                 pickle.dump([self.json_time_rssi_table_list, self.json_time_rssi_table], f)
         print('finish make beacon table')
         return self.json_time_rssi_table
+   
+    def expand_time_onehot_beacon_table(self, raw_table, split_rows):
+        s0,s1 = raw_table.strides
+        m,n = raw_table.shape
+        return np.lib.stride_tricks.as_strided(raw_table, shape=(m-split_rows+1, split_rows, n), strides=(s0, s0, s1))
 
     def make_time_onehot_target_table(self, pickle_data_directory='../raw_data/onehot_target_table.pickle', use_saved_data=True):
         self.make_target_name_list(np.array(self.json_target_list)[:, 1])
@@ -139,7 +144,6 @@ class IOTDataset:
                 pickle_data = pickle.load(f)
             self.json_target_table_list = pickle_data[0]
             self.json_target_table = pickle_data[1]
-
         else:
             print('No saved pickle data')
             self.json_target_table_list = []
@@ -243,9 +247,12 @@ def main():
     data.load_json_files(args.data_directory)
     beacon_table = data.make_time_onehot_beacon_table()
     target_table = data.make_time_onehot_target_table()
+    expand_target_table = data.expand_time_onehot_beacon_table(target_table, 3)
 
-    print(beacon_table)
-    print(target_table)
+    print(beacon_table.shape)
+    print(target_table.shape)
+    print(expand_target_table.shape)
+    print(expand_target_table)
 
 if __name__ == "__main__":
     main()
