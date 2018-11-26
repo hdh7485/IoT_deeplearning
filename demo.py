@@ -4,7 +4,7 @@ import tensorflow as tf
 import numpy as np
 from sklearn.cross_validation import train_test_split
 
-training_epochs = 500
+training_epochs = 5000
 batch_size = 100
 
 class Model:
@@ -86,8 +86,6 @@ class Model:
             self.X_img: x_data, self.Y: y_data, self.keep_prob: keep_prop})
 
 def main():
-    train, valid, test = 0.7, 0.2, 0.1
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_directory", default="../raw_data/")
     args = parser.parse_args()
@@ -97,17 +95,14 @@ def main():
     beacon_table = data.make_time_onehot_beacon_table()
     target_table = data.make_time_onehot_target_table()
 
-    print(beacon_table)
-    #(237017, 25)
-    print(target_table)
-    #(237017, 15)
-
     beacon_split_table = data.expand_time_onehot_beacon_table(beacon_table, 4)[:, :, 1:, np.newaxis]
     target_split_table = data.expand_time_onehot_beacon_table(target_table, 4)[:, -1, 1:]
 
+    # shuffle dataset
     idx = np.random.permutation(len(beacon_split_table))
     shuffled_beacon_table, shuffled_target_table = beacon_split_table[idx], target_split_table[idx]
 
+    # split to train, valid, test dataset
     beacon_train, beacon_test, target_train, target_test = train_test_split(shuffled_beacon_table, shuffled_target_table, test_size=0.3)
     beacon_valid, beacon_test, target_valid, target_test = train_test_split(beacon_test, target_test, test_size=0.5)
 
@@ -123,18 +118,16 @@ def main():
     m1 = Model(sess, "m1", 0.00001)
     writer = tf.summary.FileWriter("./logs/iot_r0_02")
     writer.add_graph(m1.sess.graph)
-
     saver = tf.train.Saver()
-
     sess.run(tf.global_variables_initializer())
 
     print('Learning Started!')
     global_step = 0
     # train my model
     for epoch in range(training_epochs):
-        ckpt_path = saver.save(sess, "saved/train0", epoch)
         if epoch%10 == 0:
             print('Valid Accuracy:', m1.get_accuracy(beacon_valid[:, :, :, :], target_valid[:, :]))
+            ckpt_path = saver.save(sess, "saved/train0", epoch)
         avg_cost = 0
         total_batch = int(target_test.shape[0] / batch_size)
 
@@ -146,14 +139,11 @@ def main():
             avg_cost += c / total_batch
             global_step += 1
 
-
         print('Epoch:', '%04d' % (epoch + 1), 'cost =', '{:.9f}, accuracy:{}'.format(avg_cost, accuracy))
-
     print('Learning Finished!')
 
     # test model and check accuracy
     print('Accuracy:', m1.get_accuracy(beacon_test[:, :, :, :], target_test[:, :]))
-
 
 if __name__ == "__main__":
     main()
