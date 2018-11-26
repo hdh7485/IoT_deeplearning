@@ -132,12 +132,12 @@ def main():
     global_step = 0
     # train my model
     for epoch in range(training_epochs):
+        if epoch%10 == 0:
+            print('Valid Accuracy:', m1.get_accuracy(beacon_valid[:, :, :, :], target_valid[:, :]))
         avg_cost = 0
         total_batch = int(target_test.shape[0] / batch_size)
 
         for i in range(total_batch):
-            if i%10 == 0:
-                print('Valid Accuracy:', m1.get_accuracy(beacon_valid[:, :, :, :], target_valid[:, :]))
             batch_xs = beacon_train[i*batch_size:(i+1)*batch_size, :, :, :]
             batch_ys = target_train[i*batch_size:(i+1)*batch_size, :]
             summary, c, _, accuracy = m1.train(batch_xs, batch_ys)
