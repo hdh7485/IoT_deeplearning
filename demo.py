@@ -102,12 +102,7 @@ def main():
     print(target_table)
     #(237017, 15)
 
-    #beacon_split_table = beacon_table[0:237016, 1:].reshape(59254, 4, 24)
-    #beacon_train, beacon_test = beacon_split_table[:59000, :, :, np.newaxis], beacon_split_table[254:, :, :, np.newaxis]
     beacon_split_table = data.expand_time_onehot_beacon_table(beacon_table, 4)[:, :, 1:, np.newaxis]
-
-    #target_split_table = target_table[0:237016, 1:].reshape(59254, 4, 14)
-    #target_train, target_test = target_split_table[:59000, -1, :], target_split_table[254:, -1, :]
     target_split_table = data.expand_time_onehot_beacon_table(target_table, 4)[:, -1, 1:]
 
     idx = np.random.permutation(len(beacon_split_table))
@@ -125,16 +120,19 @@ def main():
     # initialize
     sess = tf.Session()
 
-
     m1 = Model(sess, "m1", 0.00001)
     writer = tf.summary.FileWriter("./logs/iot_r0_02")
     writer.add_graph(m1.sess.graph)
+
+    saver = tf.train.Saver()
+
     sess.run(tf.global_variables_initializer())
 
     print('Learning Started!')
     global_step = 0
     # train my model
     for epoch in range(training_epochs):
+        ckpt_path = saver.save(sess, "saved/train0", epoch)
         if epoch%10 == 0:
             print('Valid Accuracy:', m1.get_accuracy(beacon_valid[:, :, :, :], target_valid[:, :]))
         avg_cost = 0
