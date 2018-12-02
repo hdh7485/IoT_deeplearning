@@ -2,7 +2,7 @@ import argparse
 import extractData_hdh
 import tensorflow as tf
 import numpy as np
-from sklearn.cross_validation import train_test_split
+from sklearn.model_selection import train_test_split
 
 training_epochs = 50000
 batch_size = 100
