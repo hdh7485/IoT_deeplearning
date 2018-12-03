@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 training_epochs = 50000
-batch_size = 500
+batch_size = 1000
 
 class Model:
     def __init__(self, sess, name, learning_rate):
@@ -25,6 +25,7 @@ class Model:
             with tf.name_scope("convolution1"):
                 W1 = tf.get_variable("W1", shape=[2, 2, 1, 20])
                 L1 = tf.nn.conv2d(self.X_img, W1, strides=[1, 1, 1, 1], padding='SAME')
+                L1 = tf.contrib.layers.batch_norm(L1, center=True, scale=True, is_training=phase, scope='bn1')
                 L1 = tf.nn.relu(L1)
                 L1 = tf.nn.dropout(L1, keep_prob=self.keep_prob)
                 #4 24 20
@@ -33,6 +34,7 @@ class Model:
             with tf.name_scope("convolution2"):
                 W2 = tf.get_variable("W2", shape=[2, 2, 20, 100])
                 L2 = tf.nn.conv2d(L1, W2, strides=[1, 1, 1, 1], padding='SAME')
+                L3 = tf.contrib.layers.batch_norm(L2, center=True, scale=True, is_training=phase, scope='bn2')
                 L2 = tf.nn.relu(L2)
                 L2 = tf.nn.max_pool(L2, ksize=[1, 2, 2, 1],
                                     strides=[1, 2, 2, 1], padding='SAME')
@@ -43,12 +45,13 @@ class Model:
             with tf.name_scope("convolution3"):
                 W3 = tf.get_variable("W3", shape=[2, 2, 100, 200])
                 L3 = tf.nn.conv2d(L2, W3, strides=[1, 1, 1, 1], padding='SAME')
+                L3 = tf.contrib.layers.batch_norm(L3, center=True, scale=True, is_training=phase, scope='bn3')
                 L3 = tf.nn.relu(L3)
                 L3 = tf.nn.dropout(L3, keep_prob=self.keep_prob)
                 #2 12 200
                 L3_flat = tf.reshape(L3, [-1, 200 * 2 * 12])
                 #200*2*12
-                self.W3_hist = tf.summary.histogram("weights2", W2)
+                self.W3_hist = tf.summary.histogram("weights3", W3)
 
             with tf.name_scope("fully_connected1"):
                 FC_W1 = tf.get_variable("FC_W1", shape=[200 * 2 * 12, 400],
@@ -57,8 +60,8 @@ class Model:
                 FC_L1 = tf.nn.relu(tf.matmul(L3_flat, FC_W1) + FC_b1)
                 FC_L1 = tf.nn.dropout(FC_L1, keep_prob=self.keep_prob)
                 # 400
-                self.FC_W1_hist = tf.summary.histogram("weights", FC_W1)
-                self.FC_b1_hist = tf.summary.histogram("bias", FC_b1)
+                self.FC_W1_hist = tf.summary.histogram("weights_FC1", FC_W1)
+                self.FC_b1_hist = tf.summary.histogram("bias_FC1", FC_b1)
 
             with tf.name_scope("fully_connected2"):
                 # Final FC 400 inputs -> 14 outputs
@@ -66,8 +69,8 @@ class Model:
                                      initializer=tf.contrib.layers.xavier_initializer())
                 FC_b2 = tf.get_variable("FC_b2", shape=[14])
                 self.logits = tf.matmul(FC_L1, FC_W2) + FC_b2
-                self.FC_W2_hist = tf.summary.histogram("weights", FC_W2)
-                self.FC_b2_hist = tf.summary.histogram("bias", FC_b2)
+                self.FC_W2_hist = tf.summary.histogram("weights_FC2", FC_W2)
+                self.FC_b2_hist = tf.summary.histogram("bias_FC2", FC_b2)
 
         # define cost/loss & optimizer
         with tf.name_scope("cost"):
