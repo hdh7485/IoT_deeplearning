@@ -23,7 +23,7 @@ class Model:
             self.X_img = tf.placeholder(tf.float32, [None, 4, 24, 1])
             self.Y = tf.placeholder(tf.float32, [None, 14])
             
-            cell = tf.contrib.rnn.BasicLSTMCell(num_units=sefl.hidden_size, state_is_tuple=True)
+            cell = tf.contrib.rnn.BasicLSTMCell(num_units=self.hidden_size, state_is_tuple=True)
             initial_state = cell.zero_state(batch_size, tf.float32)
             outputs, _states = tf.nn.dynamic_rnn(
                 cell, self.X_img, initial_state=initial_state, dtype=tf.float32)
