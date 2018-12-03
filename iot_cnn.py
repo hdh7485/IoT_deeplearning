@@ -19,13 +19,14 @@ class Model:
             # dropout (keep_prob) rate  0.7~0.5 on training, but should be 1
             # for testing
             self.keep_prob = tf.placeholder(tf.float32)
+            self.phase= tf.placeholder(tf.bool)
             self.X_img = tf.placeholder(tf.float32, [None, 4, 24, 1])
             self.Y = tf.placeholder(tf.float32, [None, 14])
             
             with tf.name_scope("convolution1"):
                 W1 = tf.get_variable("W1", shape=[2, 2, 1, 20])
                 L1 = tf.nn.conv2d(self.X_img, W1, strides=[1, 1, 1, 1], padding='SAME')
-                L1 = tf.contrib.layers.batch_norm(L1, center=True, scale=True, is_training=phase, scope='bn1')
+                L1 = tf.contrib.layers.batch_norm(L1, center=True, scale=True, is_training=self.phase, scope='bn1')
                 L1 = tf.nn.relu(L1)
                 L1 = tf.nn.dropout(L1, keep_prob=self.keep_prob)
                 #4 24 20
@@ -34,7 +35,7 @@ class Model:
             with tf.name_scope("convolution2"):
                 W2 = tf.get_variable("W2", shape=[2, 2, 20, 100])
                 L2 = tf.nn.conv2d(L1, W2, strides=[1, 1, 1, 1], padding='SAME')
-                L3 = tf.contrib.layers.batch_norm(L2, center=True, scale=True, is_training=phase, scope='bn2')
+                L2 = tf.contrib.layers.batch_norm(L2, center=True, scale=True, is_training=self.phase, scope='bn2')
                 L2 = tf.nn.relu(L2)
                 L2 = tf.nn.max_pool(L2, ksize=[1, 2, 2, 1],
                                     strides=[1, 2, 2, 1], padding='SAME')
@@ -45,7 +46,7 @@ class Model:
             with tf.name_scope("convolution3"):
                 W3 = tf.get_variable("W3", shape=[2, 2, 100, 200])
                 L3 = tf.nn.conv2d(L2, W3, strides=[1, 1, 1, 1], padding='SAME')
-                L3 = tf.contrib.layers.batch_norm(L3, center=True, scale=True, is_training=phase, scope='bn3')
+                L3 = tf.contrib.layers.batch_norm(L3, center=True, scale=True, is_training=self.phase, scope='bn3')
                 L3 = tf.nn.relu(L3)
                 L3 = tf.nn.dropout(L3, keep_prob=self.keep_prob)
                 #2 12 200
@@ -57,7 +58,9 @@ class Model:
                 FC_W1 = tf.get_variable("FC_W1", shape=[200 * 2 * 12, 400],
                                      initializer=tf.contrib.layers.xavier_initializer())
                 FC_b1 = tf.get_variable("FC_b1", shape=[400])
-                FC_L1 = tf.nn.relu(tf.matmul(L3_flat, FC_W1) + FC_b1)
+                FC_L1 = tf.matmul(L3_flat, FC_W1) + FC_b1
+                FC_L1 = tf.contrib.layers.batch_norm(FC_L1, center=True, scale=True, is_training=self.phase, scope='FC_bn1')
+                FC_L1 = tf.nn.relu(FC_L1)
                 FC_L1 = tf.nn.dropout(FC_L1, keep_prob=self.keep_prob)
                 # 400
                 self.FC_W1_hist = tf.summary.histogram("weights_FC1", FC_W1)
@@ -85,14 +88,14 @@ class Model:
 
 
     def predict(self, x_test, keep_prop=1.0):
-        return self.sess.run(self.logits, feed_dict={self.X_img: x_test, self.keep_prob: keep_prop})
+        return self.sess.run(self.logits, feed_dict={self.X_img: x_test, self.keep_prob: keep_prop, self.phase:False})
 
     def get_accuracy(self, x_test, y_test, keep_prop=1.0):
-        return self.sess.run(self.accuracy, feed_dict={self.X_img: x_test, self.Y: y_test, self.keep_prob: keep_prop})
+        return self.sess.run(self.accuracy, feed_dict={self.X_img: x_test, self.Y: y_test, self.keep_prob: keep_prop, self.phase:True})
 
     def train(self, x_data, y_data, keep_prop=0.7):
         return self.sess.run([self.merged_summary, self.cost, self.optimizer, self.accuracy], feed_dict={
-            self.X_img: x_data, self.Y: y_data, self.keep_prob: keep_prop})
+            self.X_img: x_data, self.Y: y_data, self.keep_prob: keep_prop, self.phase:True})
 
 def main():
     parser = argparse.ArgumentParser()
