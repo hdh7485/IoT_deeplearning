@@ -13,20 +13,20 @@ class Model:
         self.name = name
         self.learning_rate = learning_rate
         self.hidden_size = hidden_size
-        self._build_net()
 
     def _build_net(self):
         with tf.variable_scope(self.name):
             # dropout (keep_prob) rate  0.7~0.5 on training, but should be 1
             # for testing
+            self.hidden_size = 10
             self.keep_prob = tf.placeholder(tf.float32)
             self.X_img = tf.placeholder(tf.float32, [None, 4, 24, 1])
             self.Y = tf.placeholder(tf.float32, [None, 14])
             
-            cell = tf.contrib.rnn.BasicLSTMCell(num_units=hidden_size, state_is_tuple=True)
+            cell = tf.contrib.rnn.BasicLSTMCell(num_units=sefl.hidden_size, state_is_tuple=True)
             initial_state = cell.zero_state(batch_size, tf.float32)
             outputs, _states = tf.nn.dynamic_rnn(
-                cell, X_img, initial_state=initial_state, dtype=tf.float32)
+                cell, self.X_img, initial_state=initial_state, dtype=tf.float32)
 
             # FC layer
             X_for_fc = tf.reshape(outputs, [-1, self.hidden_size])
@@ -35,46 +35,6 @@ class Model:
             # outputs = tf.matmul(X_for_fc, fc_w) + fc_b
             outputs = tf.contrib.layers.fully_connected(
                 inputs=X_for_fc, num_outputs=14, activation_fn=None)
-
-            with tf.name_scope("convolution1"):
-                W1 = tf.get_variable("W1", shape=[2, 2, 1, 20])
-                L1 = tf.nn.conv2d(self.X_img, W1, strides=[1, 2, 1, 1], padding='SAME')
-                L1 = tf.nn.relu(L1)
-                L1 = tf.nn.dropout(L1, keep_prob=self.keep_prob)
-                #L1 = tf.nn.max_pool(L1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
-                #4 24 10
-                self.W1_hist = tf.summary.histogram("weights1", W1)
-
-            with tf.name_scope("convolution2"):
-                W2 = tf.get_variable("W2", shape=[2, 2, 10, 100])
-                L2 = tf.nn.conv2d(L1, W2, strides=[1, 1, 1, 1], padding='SAME')
-                L2 = tf.nn.relu(L2)
-                L2 = tf.nn.max_pool(L2, ksize=[1, 2, 2, 1],
-                                    strides=[1, 2, 2, 1], padding='SAME')
-                L2 = tf.nn.dropout(L2, keep_prob=self.keep_prob)
-                #2 12 2
-                L2_flat = tf.reshape(L2, [-1, 100 * 2 * 12])
-
-                self.W2_hist = tf.summary.histogram("weights2", W2)
-
-            with tf.name_scope("convolution3"):
-                W3 = tf.get_variable("W3", shape=[100 * 2 * 12, 200],
-                                     initializer=tf.contrib.layers.xavier_initializer())
-                b3 = tf.get_variable("b3", shape=[200])
-                L3 = tf.nn.relu(tf.matmul(L2_flat, W3) + b3)
-                L3 = tf.nn.dropout(L3, keep_prob=self.keep_prob)
-
-                self.W3_hist = tf.summary.histogram("weights3", W3)
-
-            with tf.name_scope("fully_connected"):
-                # L5 Final FC 400 inputs -> 14 outputs
-                FC_W = tf.get_variable("FC_W", shape=[200, 14],
-                                     initializer=tf.contrib.layers.xavier_initializer())
-                FC_b = tf.get_variable("FC_b", shape=[14])
-                self.logits = tf.matmul(L3, FC_W) + FC_b
-
-                self.FC_W_hist = tf.summary.histogram("weights", FC_W)
-                self.FC_b_hist = tf.summary.histogram("bias", FC_b)
 
         # define cost/loss & optimizer
         with tf.name_scope("cost"):
