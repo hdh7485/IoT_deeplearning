@@ -4,8 +4,8 @@ import tensorflow as tf
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-training_epochs = 50000
-batch_size = 1000
+training_epochs = 500
+batch_size = 100
 
 class Model:
     def __init__(self, sess, name, learning_rate):
