@@ -44,7 +44,7 @@ class Model:
                 self.W2_hist = tf.summary.histogram("weights2", W2)
 
             with tf.name_scope("convolution3"):
-                W3 = tf.get_variable("W3", shape=[2, 2, 64, 128])
+                W3 = tf.get_variable("W3", shape=[3, 3, 64, 128])
                 L3 = tf.nn.conv2d(L2, W3, strides=[1, 1, 1, 1], padding='SAME')
                 L3 = tf.contrib.layers.batch_norm(L3, center=True, scale=True, is_training=self.phase, scope='bn3')
                 L3 = tf.nn.relu(L3)
