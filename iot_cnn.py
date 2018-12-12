@@ -24,40 +24,40 @@ class Model:
             self.Y = tf.placeholder(tf.float32, [None, 14])
             
             with tf.name_scope("convolution1"):
-                W1 = tf.get_variable("W1", shape=[2, 2, 1, 20])
+                W1 = tf.get_variable("W1", shape=[3, 3, 1, 32])
                 L1 = tf.nn.conv2d(self.X_img, W1, strides=[1, 1, 1, 1], padding='SAME')
                 L1 = tf.contrib.layers.batch_norm(L1, center=True, scale=True, is_training=self.phase, scope='bn1')
                 L1 = tf.nn.relu(L1)
                 L1 = tf.nn.dropout(L1, keep_prob=self.keep_prob)
-                #4 24 20
+                #4 24 32
                 self.W1_hist = tf.summary.histogram("weights1", W1)
 
             with tf.name_scope("convolution2"):
-                W2 = tf.get_variable("W2", shape=[2, 2, 20, 100])
+                W2 = tf.get_variable("W2", shape=[3, 3, 32, 64])
                 L2 = tf.nn.conv2d(L1, W2, strides=[1, 1, 1, 1], padding='SAME')
                 L2 = tf.contrib.layers.batch_norm(L2, center=True, scale=True, is_training=self.phase, scope='bn2')
                 L2 = tf.nn.relu(L2)
                 L2 = tf.nn.max_pool(L2, ksize=[1, 2, 2, 1],
                                     strides=[1, 2, 2, 1], padding='SAME')
                 L2 = tf.nn.dropout(L2, keep_prob=self.keep_prob)
-                #2 12 100
+                #2 12 64
                 self.W2_hist = tf.summary.histogram("weights2", W2)
 
             with tf.name_scope("convolution3"):
-                W3 = tf.get_variable("W3", shape=[2, 2, 100, 200])
+                W3 = tf.get_variable("W3", shape=[2, 2, 64, 128])
                 L3 = tf.nn.conv2d(L2, W3, strides=[1, 1, 1, 1], padding='SAME')
                 L3 = tf.contrib.layers.batch_norm(L3, center=True, scale=True, is_training=self.phase, scope='bn3')
                 L3 = tf.nn.relu(L3)
                 L3 = tf.nn.dropout(L3, keep_prob=self.keep_prob)
-                #2 12 200
-                L3_flat = tf.reshape(L3, [-1, 200 * 2 * 12])
+                #2 12 128
+                L3_flat = tf.reshape(L3, [-1, 128 * 2 * 12])
                 #200*2*12
                 self.W3_hist = tf.summary.histogram("weights3", W3)
 
             with tf.name_scope("fully_connected1"):
-                FC_W1 = tf.get_variable("FC_W1", shape=[200 * 2 * 12, 400],
+                FC_W1 = tf.get_variable("FC_W1", shape=[128 * 2 * 12, 625],
                                      initializer=tf.contrib.layers.xavier_initializer())
-                FC_b1 = tf.get_variable("FC_b1", shape=[400])
+                FC_b1 = tf.get_variable("FC_b1", shape=[625])
                 FC_L1 = tf.matmul(L3_flat, FC_W1) + FC_b1
                 FC_L1 = tf.contrib.layers.batch_norm(FC_L1, center=True, scale=True, is_training=self.phase, scope='FC_bn1')
                 FC_L1 = tf.nn.relu(FC_L1)
@@ -68,7 +68,7 @@ class Model:
 
             with tf.name_scope("fully_connected2"):
                 # Final FC 400 inputs -> 14 outputs
-                FC_W2 = tf.get_variable("FC_W2", shape=[400, 14],
+                FC_W2 = tf.get_variable("FC_W2", shape=[625, 14],
                                      initializer=tf.contrib.layers.xavier_initializer())
                 FC_b2 = tf.get_variable("FC_b2", shape=[14])
                 self.logits = tf.matmul(FC_L1, FC_W2) + FC_b2
