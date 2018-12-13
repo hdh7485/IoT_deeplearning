@@ -2,7 +2,7 @@ import argparse
 import extractData_hdh
 import tensorflow as tf
 import numpy as np
-from sklearn.cross_validation import train_test_split
+from sklearn.model_selection import train_test_split
 import os
 import matplotlib
 
@@ -17,11 +17,10 @@ def MinMaxScaler(data):
     # noise term prevents the zero division
     return numerator / (denominator + 1e-7)
 
-
 # train Parameters
 seq_length = 5
 hidden_dim = 10
-output_dim = 1
+output_dim = 14
 learning_rate = 0.01
 iterations = 500
 
@@ -31,40 +30,34 @@ args = parser.parse_args()
 
 data = extractData_hdh.IOTDataset()
 data.load_json_files(args.data_directory)
-beacon_table = data.make_time_onehot_beacon_table()
-target_table = data.make_time_onehot_target_table()
-
-beacon_split_table = data.expand_time_onehot_beacon_table(beacon_table, 4)[:, :, 1:]
-target_split_table = data.expand_time_onehot_beacon_table(target_table, 4)[:, -1, 1:]
+beacon_table = data.make_time_onehot_beacon_table()[:, 1:]
+target_table = data.make_time_onehot_target_table()[:, 1:]
 
 # shuffle dataset
-idx = np.random.permutation(len(beacon_split_table))
-shuffled_beacon_table, shuffled_target_table = beacon_split_table[idx], target_split_table[idx]
+#idx = np.random.permutation(len(beacon_split_table))
+#shuffled_beacon_table, shuffled_target_table = beacon_split_table[idx], target_split_table[idx]
 
 # split to train, valid, test dataset
-beacon_train, beacon_test, target_train, target_test = train_test_split(shuffled_beacon_table, shuffled_target_table, test_size=0.3)
+beacon_train, beacon_test, target_train, target_test = train_test_split(beacon_table, target_table, test_size=0.3)
 beacon_valid, beacon_test, target_valid, target_test = train_test_split(beacon_test, target_test, test_size=0.5)
 
-
-print(beacon_train.shape)
-print(beacon_test.shape)
-print(target_train.shape)
-print(target_test.shape)
-
 # build datasets
-def build_dataset(time_series, seq_length):
+def build_dataset(time_series, y_series, seq_length):
     dataX = []
     dataY = []
     for i in range(0, len(time_series) - seq_length):
         _x = time_series[i:i + seq_length, :]
-        _y = time_series[i + seq_length, [-1]]  # Next close price
-        print(_x, "->", _y)
+        #_y = time_series[i + seq_length, [-1]]  # Next close price
+        _y = y_series[i+seq_length, :]
+        #print(_x, "->", _y)
         dataX.append(_x)
         dataY.append(_y)
     return np.array(dataX), np.array(dataY)
 
-trainX, trainY = build_dataset(train_set, seq_length)
-testX, testY = build_dataset(test_set, seq_length)
+trainX, trainY = build_dataset(beacon_train, target_train, seq_length)
+testX, testY = build_dataset(beacon_test, target_test, seq_length)
+print(trainX.shape)
+print(trainY.shape)
 
 # input place holders
 X = tf.placeholder(tf.float32, [None, seq_length, 24])
