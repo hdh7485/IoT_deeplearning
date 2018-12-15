@@ -21,6 +21,7 @@ class Model:
             self.keep_prob = tf.placeholder(tf.float32)
             self.phase= tf.placeholder(tf.bool)
             self.X_img = tf.placeholder(tf.float32, [None, 4, 24, 1])
+            self.X_img = tf.negative(self.X_img)
             self.Y = tf.placeholder(tf.float32, [None, 14])
             
             with tf.name_scope("convolution1"):

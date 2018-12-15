@@ -6,9 +6,6 @@ from sklearn.model_selection import train_test_split
 import os
 import matplotlib
 
-training_epochs = 50000
-batch_size = 100
-
 tf.set_random_seed(777)  # reproducibility
 
 def MinMaxScaler(data):
@@ -22,7 +19,7 @@ seq_length = 5
 hidden_dim = 10
 output_dim = 14
 learning_rate = 0.01
-iterations = 500
+iterations = 1000
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_directory", default="../raw_data/")
@@ -56,8 +53,9 @@ def build_dataset(time_series, y_series, seq_length):
 
 trainX, trainY = build_dataset(beacon_train, target_train, seq_length)
 testX, testY = build_dataset(beacon_test, target_test, seq_length)
-print(trainX.shape)
-print(trainY.shape)
+validX, validY = build_dataset(beacon_valid, target_valid, seq_length)
+print(validX.shape)
+print(validY.shape)
 
 # input place holders
 X = tf.placeholder(tf.float32, [None, seq_length, 24])
@@ -77,8 +75,8 @@ optimizer = tf.train.AdamOptimizer(learning_rate)
 train = optimizer.minimize(loss)
 
 # RMSE
-targets = tf.placeholder(tf.float32, [None, 1])
-predictions = tf.placeholder(tf.float32, [None, 1])
+targets = tf.placeholder(tf.float32, [None, 14])
+predictions = tf.placeholder(tf.float32, [None, 14])
 rmse = tf.sqrt(tf.reduce_mean(tf.square(targets - predictions)))
 
 with tf.Session() as sess:
@@ -87,8 +85,11 @@ with tf.Session() as sess:
 
     # Training step
     for i in range(iterations):
-        _, step_loss = sess.run([train, loss], feed_dict={
-                                X: trainX, Y: trainY})
+        if i%10 == 0:
+            _, step_loss = sess.run([train, loss], feed_dict={X: validX, Y: validY})
+            print("[valid: {}] loss: {}".format(i, step_loss))
+
+        _, step_loss = sess.run([train, loss], feed_dict={X: trainX, Y: trainY})
         print("[step: {}] loss: {}".format(i, step_loss))
 
     # Test step
