@@ -9,3 +9,6 @@ And we divided the log data into the log data and the ceiling log data.
 Data in _D in the directory folder is data consisting only of the ceiling data.
 
 ## Copy row data
+
+## Unzip raw_data1.zip and raw_data2.zip
+Unzip .zip files in same directory. I recommend merged directory is positioned in iot_deeplearning's parent directory.
