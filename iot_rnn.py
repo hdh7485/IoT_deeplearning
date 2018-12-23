@@ -6,12 +6,6 @@ from sklearn.model_selection import train_test_split
 import os
 import matplotlib
 
-<<<<<<< HEAD
-=======
-training_epochs = 50000
-batch_size = 100
-
->>>>>>> f3ab411b94fdbec72a44fd8016002ad32fdeacee
 tf.set_random_seed(777)  # reproducibility
 
 def MinMaxScaler(data):
@@ -25,11 +19,7 @@ seq_length = 5
 hidden_dim = 10
 output_dim = 14
 learning_rate = 0.01
-<<<<<<< HEAD
 iterations = 1000
-=======
-iterations = 500
->>>>>>> f3ab411b94fdbec72a44fd8016002ad32fdeacee
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_directory", default="../raw_data/")
@@ -63,17 +53,13 @@ def build_dataset(time_series, y_series, seq_length):
 
 trainX, trainY = build_dataset(beacon_train, target_train, seq_length)
 testX, testY = build_dataset(beacon_test, target_test, seq_length)
-<<<<<<< HEAD
 validX, validY = build_dataset(beacon_valid, target_valid, seq_length)
 print(validX.shape)
 print(validY.shape)
-=======
-print(trainX.shape)
-print(trainY.shape)
->>>>>>> f3ab411b94fdbec72a44fd8016002ad32fdeacee
 
 # input place holders
 X = tf.placeholder(tf.float32, [None, seq_length, 24])
+X = tf.negative(X)
 Y = tf.placeholder(tf.float32, [None, 14])
 
 # build a LSTM network
@@ -89,14 +75,12 @@ loss = tf.reduce_sum(tf.square(Y_pred - Y))  # sum of the squares
 optimizer = tf.train.AdamOptimizer(learning_rate)
 train = optimizer.minimize(loss)
 
+correct_prediction = tf.equal(tf.argmax(Y_pred, 1), tf.argmax(Y, 1))
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
 # RMSE
-<<<<<<< HEAD
 targets = tf.placeholder(tf.float32, [None, 14])
 predictions = tf.placeholder(tf.float32, [None, 14])
-=======
-targets = tf.placeholder(tf.float32, [None, 1])
-predictions = tf.placeholder(tf.float32, [None, 1])
->>>>>>> f3ab411b94fdbec72a44fd8016002ad32fdeacee
 rmse = tf.sqrt(tf.reduce_mean(tf.square(targets - predictions)))
 
 with tf.Session() as sess:
@@ -105,20 +89,15 @@ with tf.Session() as sess:
 
     # Training step
     for i in range(iterations):
-<<<<<<< HEAD
         if i%10 == 0:
-            _, step_loss = sess.run([train, loss], feed_dict={X: validX, Y: validY})
+            _, step_loss, accuracy_val = sess.run([train, loss, accuracy], feed_dict={X: validX, Y: validY})
             print("[valid: {}] loss: {}".format(i, step_loss))
 
-        _, step_loss = sess.run([train, loss], feed_dict={X: trainX, Y: trainY})
-=======
-        _, step_loss = sess.run([train, loss], feed_dict={
-                                X: trainX, Y: trainY})
->>>>>>> f3ab411b94fdbec72a44fd8016002ad32fdeacee
-        print("[step: {}] loss: {}".format(i, step_loss))
+        _, step_loss, accuracy_val = sess.run([train, loss, accuracy], feed_dict={X: trainX, Y: trainY})
+        print("[step: {}] loss: {}, accu: {}".format(i, step_loss, accuracy_val))
 
     # Test step
     test_predict = sess.run(Y_pred, feed_dict={X: testX})
-    rmse_val = sess.run(rmse, feed_dict={
+    accuracy_val = sess.run(accuracy, feed_dict={
                     targets: testY, predictions: test_predict})
-    print("RMSE: {}".format(rmse_val))
+    print("RMSE: {}".format(accuracy_val))
