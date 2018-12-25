@@ -21,12 +21,12 @@ class Model:
             self.keep_prob = tf.placeholder(tf.float32)
             self.phase= tf.placeholder(tf.bool)
             self.X_img = tf.placeholder(tf.float32, [None, 4, 24, 1])
-            self.X_img = tf.negative(self.X_img)
+            self.negative_X = tf.negative(self.X_img)
             self.Y = tf.placeholder(tf.float32, [None, 14])
             
             with tf.name_scope("convolution1"):
                 W1 = tf.get_variable("W1", shape=[3, 3, 1, 32])
-                L1 = tf.nn.conv2d(self.X_img, W1, strides=[1, 1, 1, 1], padding='SAME')
+                L1 = tf.nn.conv2d(self.negative_X, W1, strides=[1, 1, 1, 1], padding='SAME')
                 L1 = tf.contrib.layers.batch_norm(L1, center=True, scale=True, is_training=self.phase, scope='bn1')
                 L1 = tf.nn.relu(L1)
                 L1 = tf.nn.dropout(L1, keep_prob=self.keep_prob)
@@ -78,7 +78,8 @@ class Model:
 
         # define cost/loss & optimizer
         with tf.name_scope("cost"):
-            self.cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.logits, labels=self.Y))  
+            self.softmax = tf.nn.softmax_cross_entropy_with_logits_v2(logits=self.logits, labels=self.Y)
+            self.cost = tf.reduce_mean(self.softmax) 
             self.cost_summ = tf.summary.scalar("cost", self.cost)
 
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.cost)
@@ -92,7 +93,7 @@ class Model:
         return self.sess.run(self.logits, feed_dict={self.X_img: x_test, self.keep_prob: keep_prop, self.phase:False})
 
     def get_accuracy(self, x_test, y_test, keep_prop=1.0):
-        return self.sess.run(self.accuracy, feed_dict={self.X_img: x_test, self.Y: y_test, self.keep_prob: keep_prop, self.phase:True})
+        return self.sess.run([self.accuracy, self.negative_X, self.Y, self.logits], feed_dict={self.X_img: x_test, self.Y: y_test, self.keep_prob: keep_prop, self.phase:True})
 
     def train(self, x_data, y_data, keep_prop=0.7):
         return self.sess.run([self.merged_summary, self.cost, self.optimizer, self.accuracy], feed_dict={
@@ -139,7 +140,8 @@ def main():
     # train my model
     for epoch in range(training_epochs):
         if epoch%10 == 0:
-            print('Valid Accuracy:', m1.get_accuracy(beacon_valid[:, :, :, :], target_valid[:, :]))
+            accuracy, out_X, out_Y, out_Y_pre = m1.get_accuracy(beacon_valid[:, :, :, :], target_valid[:, :])
+            print('X:{}\nY:{}\nY_pre:{}\nValid Accuracy:{}'.format(out_X[0], out_Y[0], out_Y_pre[0], accuracy))
             #ckpt_path = saver.save(sess, "saved/train0", epoch)
         avg_cost = 0
         total_batch = int(target_test.shape[0] / batch_size)

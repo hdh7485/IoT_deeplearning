@@ -15,7 +15,7 @@ def MinMaxScaler(data):
     return numerator / (denominator + 1e-7)
 
 # train Parameters
-seq_length = 5
+seq_length = 4
 hidden_dim = 10
 output_dim = 14
 learning_rate = 0.01
@@ -59,13 +59,13 @@ print(validY.shape)
 
 # input place holders
 X = tf.placeholder(tf.float32, [None, seq_length, 24])
-X = tf.negative(X)
+negative_X = tf.negative(X)
 Y = tf.placeholder(tf.float32, [None, 14])
 
 # build a LSTM network
 cell = tf.contrib.rnn.BasicLSTMCell(
     num_units=hidden_dim, state_is_tuple=True, activation=tf.tanh)
-outputs, _states = tf.nn.dynamic_rnn(cell, X, dtype=tf.float32)
+outputs, _states = tf.nn.dynamic_rnn(cell, negative_X, dtype=tf.float32)
 Y_pred = tf.contrib.layers.fully_connected(
     outputs[:, -1], output_dim, activation_fn=None)  # We use the last cell's output
 
@@ -90,8 +90,10 @@ with tf.Session() as sess:
     # Training step
     for i in range(iterations):
         if i%10 == 0:
-            _, step_loss, accuracy_val = sess.run([train, loss, accuracy], feed_dict={X: validX, Y: validY})
+            out_X, out_Y, out_Y_pred, _, step_loss, accuracy_val = sess.run([negative_X, Y, Y_pred, train, loss, accuracy], feed_dict={X: validX, Y: validY})
             print("[valid: {}] loss: {}".format(i, step_loss))
+            print("[X:{}, \nY:{}, \nY_pred: {}".format(out_X[0], out_Y[0], out_Y_pred[0]))
+            print(tf.shape(negative_X)) 
 
         _, step_loss, accuracy_val = sess.run([train, loss, accuracy], feed_dict={X: trainX, Y: trainY})
         print("[step: {}] loss: {}, accu: {}".format(i, step_loss, accuracy_val))
