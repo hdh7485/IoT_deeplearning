@@ -117,14 +117,25 @@ def main():
     shuffled_beacon_table, shuffled_target_table = beacon_split_table[idx], target_split_table[idx]
 
     # split to train, valid, test dataset
-    beacon_train, beacon_test, target_train, target_test = train_test_split(shuffled_beacon_table, shuffled_target_table, test_size=0.3)
-    beacon_valid, beacon_test, target_valid, target_test = train_test_split(beacon_test, target_test, test_size=0.5)
+    beacon_train, beacon_test, target_train, target_test = train_test_split(
+        shuffled_beacon_table, shuffled_target_table, test_size=0.3, shuffle=False)
+    #beacon_train, beacon_test, target_train, target_test = train_test_split(
+    #    beacon_split_table, target_split_table, test_size=0.3, shuffle=False)
+    beacon_valid, beacon_test, target_valid, target_test = train_test_split(
+        beacon_test, target_test, test_size=0.5, shuffle=False)
 
-
-    print(beacon_train.shape)
-    print(beacon_test.shape)
-    print(target_train.shape)
-    print(target_test.shape)
+    # check imported data
+    for k in range(10):
+        fig = plt.figure()
+        plt.subplot(211)
+        X = np.negative(np.reshape(beacon_valid[k], (4, 24)))
+        print(X)
+        plt.imshow(X, cmap="gray")
+        plt.subplot(212)
+        Y = target_valid[k]
+        print(Y)
+        plt.imshow(np.expand_dims(Y, axis=0), cmap="gray")
+        plt.show()    
 
     # initialize
     sess = tf.Session()
@@ -140,12 +151,22 @@ def main():
     # train my model
     for epoch in range(training_epochs):
         if epoch%10 == 0:
-            accuracy, out_X, out_Y, out_Y_pre = m1.get_accuracy(beacon_valid[:, :, :, :], target_valid[:, :])
-            print('X:{}\nY:{}\nY_pre:{}\nValid Accuracy:{}'.format(out_X[0], out_Y[0], out_Y_pre[0], accuracy))
-            #ckpt_path = saver.save(sess, "saved/train0", epoch)
+            valid_average = 0
+            valid_total_batch = int(target_valid.shape[0] / batch_size)
+            for valid_index in range(valid_total_batch):
+                valid_xs = beacon_valid[valid_index*batch_size:(valid_index+1)*batch_size, :, :, :]
+                valid_ys = target_valid[valid_index*batch_size:(valid_index+1)*batch_size, :]
+                accuracy, out_X, out_Y, out_Y_pre = m1.get_accuracy(valid_xs, valid_ys)
+                #print('X:{}\nY:{}\nY_pre:{}\nValid Accuracy:{}'.format(
+                #    out_X[0], out_Y[0], out_Y_pre[0], accuracy))
+                print('Valid Accuracy:{}'.format(accuracy))
+                valid_average += accuracy
+                #ckpt_path = saver.save(sess, "saved/train0", epoch)
+            valid_average /= valid_total_batch
+            print('Valid average accuracy:{}'.format(valid_average))
+
         avg_cost = 0
         total_batch = int(target_test.shape[0] / batch_size)
-
         for i in range(total_batch):
             batch_xs = beacon_train[i*batch_size:(i+1)*batch_size, :, :, :]
             batch_ys = target_train[i*batch_size:(i+1)*batch_size, :]
