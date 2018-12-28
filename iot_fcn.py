@@ -26,19 +26,19 @@ class Model:
             self.Y = tf.placeholder(tf.float32, [None, 14])
             
             with tf.name_scope("convolution1"):
-                W1 = tf.get_variable("W1", shape=[2, 2, 1, 16])
+                W1 = tf.get_variable("W1", shape=[2, 2, 1, 8])
                 L1 = tf.nn.conv2d(self.negative_X, W1, strides=[1, 1, 1, 1], padding='SAME')
                 L1 = tf.contrib.layers.batch_norm(L1, center=True, scale=True, is_training=self.phase, scope='bn1')
                 L1 = tf.nn.relu(L1)
                 L1 = tf.nn.dropout(L1, keep_prob=self.keep_prob)
-                L1_flat = tf.reshape(L1, [-1, 16 * 4 * 24])
-                #4 24 16
+                L1_flat = tf.reshape(L1, [-1, 8 * 4 * 24])
+                #4 24 8
                 #self.W1_hist = tf.summary.histogram("weights1", W1)
 
             with tf.name_scope("fully_connected1"):
-                FC_W1 = tf.get_variable("FC_W1", shape=[16 * 4 * 24, 256],
+                FC_W1 = tf.get_variable("FC_W1", shape=[8 * 4 * 24, 64],
                                      initializer=tf.contrib.layers.xavier_initializer())
-                FC_b1 = tf.get_variable("FC_b1", shape=[256])
+                FC_b1 = tf.get_variable("FC_b1", shape=[64])
                 FC_L1 = tf.matmul(L1_flat, FC_W1) + FC_b1
                 FC_L1 = tf.contrib.layers.batch_norm(FC_L1, center=True, scale=True, is_training=self.phase, scope='FC_bn1')
                 FC_L1 = tf.nn.relu(FC_L1)
@@ -48,9 +48,9 @@ class Model:
                 self.FC_b1_hist = tf.summary.histogram("bias_FC1", FC_b1)
 
             with tf.name_scope("fully_connected2"):
-                FC_W2 = tf.get_variable("FC_W2", shape=[256, 256],
+                FC_W2 = tf.get_variable("FC_W2", shape=[64, 64],
                                      initializer=tf.contrib.layers.xavier_initializer())
-                FC_b2 = tf.get_variable("FC_b2", shape=[256])
+                FC_b2 = tf.get_variable("FC_b2", shape=[64])
                 FC_L2 = tf.matmul(FC_L1, FC_W2) + FC_b2
                 FC_L2 = tf.contrib.layers.batch_norm(FC_L2, center=True, scale=True, is_training=self.phase, scope='FC_bn2')
                 FC_L2 = tf.nn.relu(FC_L2)
@@ -61,7 +61,7 @@ class Model:
 
             with tf.name_scope("fully_connected3"):
                 # Final FC 400 inputs -> 14 outputs
-                FC_W3 = tf.get_variable("FC_W3", shape=[256, 14],
+                FC_W3 = tf.get_variable("FC_W3", shape=[64, 14],
                                      initializer=tf.contrib.layers.xavier_initializer())
                 FC_b3 = tf.get_variable("FC_b3", shape=[14])
                 self.logits = tf.matmul(FC_L2, FC_W3) + FC_b3
@@ -102,23 +102,27 @@ def main():
     data.load_json_files(args.data_directory)
     beacon_table = data.make_time_onehot_beacon_table().astype(np.float)
     target_table = data.make_time_onehot_target_table().astype(np.float)
-    print(beacon_table[0])
 
     beacon_split_table = data.expand_time_onehot_beacon_table(beacon_table, 4)[:, :, 1:, np.newaxis]
     target_split_table = data.expand_time_onehot_beacon_table(target_table, 4)[:, -1, 1:]
+    number_of_target = target_split_table.astype(np.int).sum(axis=0)
+    print(number_of_target)
+    plt.plot(number_of_target)
+    plt.show()
 
     # shuffle dataset
     idx = np.random.permutation(len(beacon_split_table))
-    shuffled_beacon_table, shuffled_target_table = beacon_split_table[idx], target_split_table[idx]
+    shuffled_beacon_table, shuffled_target_table \
+    = beacon_split_table[idx], target_split_table[idx]
 
     # split to train, valid, test dataset
-    beacon_train, beacon_test, target_train, target_test = train_test_split(
-        shuffled_beacon_table, shuffled_target_table, test_size=0.3, shuffle=False)
     #beacon_train, beacon_test, target_train, target_test = train_test_split(
-    #    beacon_split_table, target_split_table, test_size=0.3, shuffle=False)
+    #    shuffled_beacon_table, shuffled_target_table, test_size=0.3, shuffle=False)
+    beacon_train, beacon_test, target_train, target_test = train_test_split(
+        beacon_split_table, target_split_table, test_size=0.3, shuffle=False)
     beacon_valid, beacon_test, target_valid, target_test = train_test_split(
         beacon_test, target_test, test_size=0.5, shuffle=False)
-
+    '''
     # check imported data
     for k in range(10):
         fig = plt.figure()
@@ -130,8 +134,48 @@ def main():
         Y = target_valid[k]
         print(Y)
         plt.imshow(np.expand_dims(Y, axis=0), cmap="gray")
-        plt.show()    
+        plt.savefig('img/valid_first_{}.png'.format(k), bbox_inches='tight')
+        #plt.show()    
 
+    for k in range(10):
+        fig = plt.figure()
+        plt.subplot(211)
+        X = np.negative(np.reshape(beacon_valid[-k], (4, 24)))
+        print(X)
+        plt.imshow(X, cmap="gray")
+        plt.subplot(212)
+        Y = target_valid[-k]
+        print(Y)
+        plt.imshow(np.expand_dims(Y, axis=0), cmap="gray")
+        plt.savefig('img/valid_last_{}.png'.format(k), bbox_inches='tight')
+        #plt.show()    
+
+    for k in range(10):
+        fig = plt.figure()
+        plt.subplot(211)
+        X = np.negative(np.reshape(beacon_train[k], (4, 24)))
+        print(X)
+        plt.imshow(X, cmap="gray")
+        plt.subplot(212)
+        Y = target_train[k]
+        print(Y)
+        plt.imshow(np.expand_dims(Y, axis=0), cmap="gray")
+        plt.savefig('img/train_first_{}.png'.format(k), bbox_inches='tight')
+        #plt.show()    
+
+    for k in range(10):
+        fig = plt.figure()
+        plt.subplot(211)
+        X = np.negative(np.reshape(beacon_train[-k], (4, 24)))
+        print(X)
+        plt.imshow(X, cmap="gray")
+        plt.subplot(212)
+        Y = target_train[-k]
+        print(Y)
+        plt.imshow(np.expand_dims(Y, axis=0), cmap="gray")
+        plt.savefig('img/train_last_{}.png'.format(k), bbox_inches='tight')
+        #plt.show()    
+    '''    
     # initialize
     sess = tf.Session()
 
@@ -154,7 +198,7 @@ def main():
                 accuracy, out_X, out_Y, out_Y_pre = m1.get_accuracy(valid_xs, valid_ys)
                 #print('X:{}\nY:{}\nY_pre:{}\nValid Accuracy:{}'.format(
                 #    out_X[0], out_Y[0], out_Y_pre[0], accuracy))
-                print('Valid Accuracy:{}'.format(accuracy))
+                #print('Valid Accuracy:{}'.format(accuracy))
                 valid_average += accuracy
                 #ckpt_path = saver.save(sess, "saved/train0", epoch)
             valid_average /= valid_total_batch
