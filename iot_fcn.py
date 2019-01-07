@@ -4,6 +4,7 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold
 
 training_epochs = 500
 batch_size = 100
@@ -178,6 +179,9 @@ def main():
     idx = np.random.permutation(len(beacon_split_table))
     shuffled_beacon_table, shuffled_target_table \
     = beacon_split_table[idx], target_split_table[idx]
+    
+    kf = KFold(n_splits=5)
+    print(kf.split(beacon_split_table, target_split_table))
 
     # split to train, valid, test dataset
     #beacon_train, beacon_test, target_train, target_test = train_test_split(
