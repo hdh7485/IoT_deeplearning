@@ -4,6 +4,7 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import LeaveOneOut
 
 training_epochs = 500
 batch_size = 100
@@ -182,6 +183,8 @@ def main():
     # split to train, valid, test dataset
     #beacon_train, beacon_test, target_train, target_test = train_test_split(
     #    shuffled_beacon_table, shuffled_target_table, test_size=0.3, shuffle=False)
+    loo = LeaveOneOut()
+    print(loo.get_n_splits(beacon_split_table))
     beacon_train, beacon_test, target_train, target_test = train_test_split(
         beacon_split_table, target_split_table, test_size=0.3, shuffle=False)
     beacon_valid, beacon_test, target_valid, target_test = train_test_split(
