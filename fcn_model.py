@@ -13,29 +13,38 @@ class Model:
             # for testing
             self.keep_prob = tf.placeholder(tf.float32)
             self.phase= tf.placeholder(tf.bool)
-            self.X_img = tf.placeholder(tf.float32, [None, 4, 24, 1])
-            self.X = tf.reshape(self.X_img, [-1, 4 * 24])
+            self.X_img = tf.placeholder(tf.float32, [None, 3, 24, 1])
+            self.X = tf.reshape(self.X_img, [-1, 3 * 24])
             self.negative_X = tf.negative(self.X)
             self.Y = tf.placeholder(tf.float32, [None, 14])
             
             with tf.name_scope("fully_connected1"):
-                FC_W1 = tf.get_variable("FC_W1", shape=[4 * 24, 8],
+                FC_W1 = tf.get_variable("FC_W1", shape=[3 * 24, 64],
                                      initializer=tf.contrib.layers.xavier_initializer())
-                FC_b1 = tf.get_variable("FC_b1", shape=[8])
+                FC_b1 = tf.get_variable("FC_b1", shape=[64])
                 FC_L1 = tf.matmul(self.negative_X, FC_W1) + FC_b1
-                FC_L1 = tf.contrib.layers.batch_norm(FC_L1, center=True, scale=True, is_training=self.phase, scope='FC_bn1')
+                FC_L1 = tf.contrib.layers.batch_norm(
+                                FC_L1, center=True, scale=True, is_training=self.phase, scope='FC_bn1')
                 FC_L1 = tf.nn.relu(FC_L1)
-                FC_L1 = tf.nn.dropout(FC_L1, keep_prob=self.keep_prob)
-                # 400
+                #FC_L1 = tf.nn.dropout(FC_L1, keep_prob=self.keep_prob)
                 self.FC_W1_hist = tf.summary.histogram("weights_FC1", FC_W1)
                 self.FC_b1_hist = tf.summary.histogram("bias_FC1", FC_b1)
 
+            with tf.name_scope("fully_connected2"):
+                FC_W2 = tf.get_variable("FC_W2", shape=[64, 128],
+                                initializer=tf.contrib.layers.xavier_initializer())
+                FC_b2 = tf.get_variable("FC_b2", shape=[128])
+                FC_L2 = tf.matmul(FC_L1, FC_W2) + FC_b2
+                FC_L2 = tf.contrib.layers.batch_norm(
+                                FC_L2, center=True, scale=True, is_training=self.phase, scope='FC_bn2')
+                FC_L2 = tf.nn.relu(FC_L2)
+                #FC_L2 = tf.nn.dropout(FC_L2, keep_prob=self.keep_prob)
+
             with tf.name_scope("fully_connected3"):
-                # Final FC 400 inputs -> 14 outputs
-                FC_W3 = tf.get_variable("FC_W3", shape=[8, 14],
+                FC_W3 = tf.get_variable("FC_W3", shape=[128, 14],
                                      initializer=tf.contrib.layers.xavier_initializer())
                 FC_b3 = tf.get_variable("FC_b3", shape=[14])
-                self.logits = tf.matmul(FC_L1, FC_W3) + FC_b3
+                self.logits = tf.matmul(FC_L2, FC_W3) + FC_b3
                 self.FC_W3_hist = tf.summary.histogram("weights_FC3", FC_W3)
                 self.FC_b3_hist = tf.summary.histogram("bias_FC3", FC_b3)
 

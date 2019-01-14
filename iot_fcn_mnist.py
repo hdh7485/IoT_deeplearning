@@ -13,8 +13,8 @@ train_y = mnist.train.labels
 test_x = mnist.test.images
 test_y = mnist.test.labels
 
-training_epochs = 500
-batch_size = 100
+training_epochs = 200
+batch_size = 500
 
 def main():
     # initialize
@@ -45,9 +45,10 @@ def main():
                 for valid_index in range(valid_total_batch):
                     valid_xs = beacon_valid[valid_index*batch_size:(valid_index+1)*batch_size, :]
                     valid_ys = target_valid[valid_index*batch_size:(valid_index+1)*batch_size, :]
-                    accuracy, out_X, out_Y, out_Y_pre = m1.get_accuracy(valid_xs, valid_ys)
+                    accuracy, _, _, _= m1.get_accuracy(valid_xs, valid_ys)
                     valid_average += accuracy
                 valid_average /= valid_total_batch
+                print("Epoch:{} Valid Accuracy:{}".format(epoch, valid_average))
 
             # Train
             avg_cost = 0
@@ -58,6 +59,8 @@ def main():
                 _, c, _, accuracy = m1.train(batch_xs, batch_ys)
                 avg_cost += c / total_batch
                 global_step += 1
+
+            #print('{}/{}'.format(epoch, training_epochs))
 
         print('Train average accuracy:', accuracy)
         print('Valid average accuracy:', valid_average)
